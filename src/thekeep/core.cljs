@@ -9,6 +9,7 @@
             [infinitelives.utils.vec2 :as vec2]
             [infinitelives.utils.gamepad :as gp]
             [infinitelives.utils.math :refer [rand-between]]
+            [infinitelives.utils.boid :as b]
 
             [thekeep.assets :as assets]
             [thekeep.line :as line]
@@ -242,7 +243,7 @@
 (defn scatter-walldec [a b c d e f g h i]
   (if (= :t2 e)
     (if (< (rand) 0.15)
-      (rand-nth [:walldec1 :walldec2 :walldec3 :walldec4])
+      (rand-nth [:walldec1 :walldec2 :walldec3 :walldec4 :portcullis :door])
       e)
     e))
 
@@ -298,8 +299,8 @@
                           ["img/tiles2.png"]))
 
     (t/load-sprite-sheet!
-        (r/get-texture :tiles2 :nearest)
-        assets/hero-mapping)
+     (r/get-texture :tiles2 :nearest)
+     assets/hero-mapping)
 
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
           [floor-tile-map wall-tile-map] (do
@@ -314,16 +315,21 @@
           wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))
 
           floor (s/make-container :children floor-tile-sprites
-                                 :scale scale
-                                 )
+                                  :scale scale
+                                  )
 
-         walls (s/make-container :children wall-tile-sprites
-                                 :scale scale
-                                 )
+          walls (s/make-container :children wall-tile-sprites
+                                  :scale scale
+                                  )
           player (s/make-sprite :down :scale scale :x 0 :y 0)
+          sword (s/make-sprite :sword :scale scale :x 0 :y 0 :yhandle 1.3)
 
           lion (s/make-sprite :lion :scale scale :x (* scale 250) :y (* scale 300))
           fire (s/make-sprite :fire :scale scale :x (* scale 175) :y (* scale 150))
+          chest (s/make-sprite :chest :scale scale :x (* scale 240) :y (* scale 100))
+          switch (s/make-sprite :switch1 :scale scale :x (* scale 80) :y (* scale 120))
+
+          enemy1 (s/make-sprite :enemy1 :scale scale :x (* scale 215) :y (* scale 270))
           ]
 
 
@@ -331,23 +337,49 @@
 
                                         ;(js/console.log tile-map)
 
-      ;(js/console.log tile-sprites)
+                                        ;(js/console.log tile-sprites)
 
       (m/with-sprite :tilemap
         [
-         container (s/make-container :children [floor walls player lion fire] :scale 1)
+         container (s/make-container :children [floor walls chest switch enemy1 player sword lion fire] :scale 1)
 
          ]
-        (m/with-sprite :player
-          []
 
-          ;; camera tracking
+        ;; enemy1
+        (go
+          (loop [boid {:mass 1.0 :pos (vec2/vec2 (* scale 215) (* scale 270))
+                       :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
+            (let [pos (:pos boid)
+                  new-boid (b/seek boid (:pos @state))
+                  new-pos (:pos new-boid)
+                  constrained-pos (line/constrain
+                                   {:passable? (fn [x y]
+                                                 (floor-tile-locations [x y]))
+                                    :h-edge 0.99
+                                    :v-edge 0.7
+                                    :minus-h-edge 0.01
+                                    :minus-v-edge 0.01}
+                                   (vec2/scale pos (/ 1 16 scale))
+                                   (vec2/scale new-pos (/ 1 16 scale)))
+                  constrained-pos (vec2/scale constrained-pos 16)
+                  new-pos (vec2/scale constrained-pos scale)]
+              (s/set-pos! enemy1 new-pos)
+              (<! (e/next-frame))
+              (recur (assoc new-boid
+                            :pos new-pos
+                            :vel (vec2/zero))))
+
+            )
+          )
+
+
+        ;; camera tracking
         (go
           (loop [cam (:pos @state)]
             (let [[cx cy] (vec2/get-xy cam)]
 
               (s/set-pivot! container (int cx) (int cy))
-              ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
+                                        ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
 
               (<! (e/next-frame))
               (let [next-pos (:pos @state)
@@ -355,11 +387,11 @@
                     mag (vec2/magnitude-squared v)]
                 (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
 
-
-          (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
-                 vel (vec2/zero)]
-            (let [
-                  joy (vec2/vec2 (or (gp/axis 0)
+        (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
+               vel (vec2/zero)
+               sword-theta 0.0]
+          (let [
+                joy (vec2/vec2 (or (gp/axis 0)
                                    (cond (e/is-pressed? :left) -1
                                          (e/is-pressed? :right) 1
                                          :default 0) )
@@ -368,28 +400,42 @@
                                          (e/is-pressed? :down) 1
                                          :default 0)
                                    ))
-                  new-pos (vec2/add pos (vec2/scale joy 2))
+                new-pos (vec2/add pos (vec2/scale joy 2))
 
-                  constrained-pos (line/constrain
-                                   {:passable? (fn [x y]
-                                                 (js/console.log "pass?" x y)
-                                                 (js/console.log (floor-tile-locations [x y]))
-                                                 (floor-tile-locations [x y]))
-                                    :h-edge 0.99
-                                    :v-edge 0.7
-                                    :minus-h-edge 0.01
-                                    :minus-v-edge 0.01}
-                                   (vec2/scale pos (/ 1 16))
-                                   (vec2/scale new-pos (/ 1 16))
-                                   )
+                constrained-pos (line/constrain
+                                 {:passable? (fn [x y]
+                                               ;(js/console.log "pass?" x y)
+                                               ;(js/console.log (floor-tile-locations [x y]))
+                                               (floor-tile-locations [x y]))
+                                  :h-edge 0.99
+                                  :v-edge 0.7
+                                  :minus-h-edge 0.01
+                                  :minus-v-edge 0.01}
+                                 (vec2/scale pos (/ 1 16))
+                                 (vec2/scale new-pos (/ 1 16))
+                                 )
 
-                  new-pos (vec2/scale constrained-pos 16)
+                new-pos (vec2/scale constrained-pos 16)
 
-                  ]
-              (swap! state assoc :pos (vec2/scale new-pos scale))
-              (s/set-pos! player (vec2/scale new-pos scale))
-              (<! (e/next-frame))
-              (recur new-pos vel))))
+                ]
+            (swap! state assoc :pos (vec2/scale new-pos scale))
+            (s/set-pos! player (vec2/scale new-pos scale))
+
+            (if (e/is-pressed? :z)
+              (do
+                ;; spinning
+                (s/set-pos! sword (vec2/scale new-pos scale))
+                (s/set-rotation! sword sword-theta))
+
+              (do
+                ;; holding
+                (s/set-pos! sword (vec2/scale (vec2/add new-pos (vec2/vec2 5 13)) scale))
+                (s/set-rotation! sword 0)))
+
+
+            (<! (e/next-frame))
+            (recur new-pos vel
+                   (+ sword-theta 0.2))))
         )
 
 

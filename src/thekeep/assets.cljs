@@ -44,6 +44,9 @@
    :walldec2 [16 112]
    :walldec3 [32 112]
    :walldec4 [48 112]
+
+   :portcullis [64 96]
+   :door [64 112]
    })
 
 (def hero-mapping
@@ -53,7 +56,17 @@
    :right {:pos [336 128] :size [16 16]}
    :down {:pos [320 144] :size [16 16]}
 
+   :sword {:pos [320 128] :size [16 16]}
+
    :lion {:pos [160 0] :size [32 48]}
 
    :fire {:pos [288 48] :size [32 48]}
+
+   :enemy1 {:pos [336 112] :size [16 16]}
+   :enemy2 {:pos [352 112] :size [16 16]}
+   :enemy3 {:pos [368 112] :size [16 16]}
+
+   :chest {:pos [128 112] :size [16 16]}
+
+   :switch1 {:pos [0 80] :size [16 16]}
    })
