@@ -35,6 +35,15 @@
    :specr [48 32]
    :specl [64 32]
 
+   :rubble1 [240 112]
+   :rubble2 [256 112]
+   :rubble3 [272 112]
+   :rubble4 [288 112]
+
+   :walldec1 [0 112]
+   :walldec2 [16 112]
+   :walldec3 [32 112]
+   :walldec4 [48 112]
    })
 
 (def hero-mapping
@@ -42,4 +51,9 @@
    :up {:pos [320 112] :size [16 16]}
    :left {:pos [304 128] :size [16 16]}
    :right {:pos [336 128] :size [16 16]}
-   :down {:pos [320 144] :size [16 16]}})
+   :down {:pos [320 144] :size [16 16]}
+
+   :lion {:pos [160 0] :size [32 48]}
+
+   :fire {:pos [288 48] :size [32 48]}
+   })

@@ -43,7 +43,7 @@
                      :damage :bottom-right
                      :score :bottom-left}}))
 
-(def scale 1)
+(def scale 2)
 
 (defn make-map-empty [[w h]]
   (mapv
@@ -197,6 +197,8 @@
   (when (not= :floor e)
     e))
 
+(defonce state (atom {:pos (vec2/vec2 (* 5 16) (* 5 16))}))
+
 (defn remap-keymap [keymap remap]
   (let [height (count keymap)
         width (count (first keymap))]
@@ -230,6 +232,20 @@
     :floor
     (nth tiles 4)))
 
+(defn scatter-rubble [a b c d e f g h i]
+  (if (= :floor e)
+    (if (< (rand) 0.05)
+      (rand-nth [:rubble1 :rubble2 :rubble3 :rubble4])
+      e)
+    e))
+
+(defn scatter-walldec [a b c d e f g h i]
+  (if (= :t2 e)
+    (if (< (rand) 0.15)
+      (rand-nth [:walldec1 :walldec2 :walldec3 :walldec4])
+      e)
+    e))
+
 (defn make-tile-map []
   (let [floor-tile-map
         (-> (make-map-empty [50 50])
@@ -249,10 +265,17 @@
             (draw-floor-box [16 22] [5 3])
             (draw-floor-box [21 22] [1 1]))
 
-        floor-tiles (remap-keymap floor-tile-map remap-expand)
+        floor-tiles (-> floor-tile-map
+                        ;(remap-keymap scatter-rubble)
+                        (remap-keymap remap-expand))
         wall-tiles (-> floor-tile-map
+
                        (remap-keymap remap)
-                       (remap-keymap remap-2))]
+                       (remap-keymap remap-2)
+                       (remap-keymap scatter-rubble)
+                       (remap-keymap scatter-walldec
+                                     )
+                       )]
     [floor-tiles wall-tiles]
 
                                         ;(remap-keymap remap-expand)
@@ -288,7 +311,20 @@
           floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
           floor-tile-sprites (mapv second floor-tile-results)
           floor-tile-locations (into #{} (mapv first floor-tile-results))
-          wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))]
+          wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))
+
+          floor (s/make-container :children floor-tile-sprites
+                                 :scale scale
+                                 )
+
+         walls (s/make-container :children wall-tile-sprites
+                                 :scale scale
+                                 )
+          player (s/make-sprite :down :scale scale :x 0 :y 0)
+
+          lion (s/make-sprite :lion :scale scale :x (* scale 250) :y (* scale 300))
+          fire (s/make-sprite :fire :scale scale :x (* scale 175) :y (* scale 150))
+          ]
 
 
       (js/console.log tile-set)
@@ -299,27 +335,28 @@
 
       (m/with-sprite :tilemap
         [
-         floor (s/make-container :children floor-tile-sprites
-                                 :scale scale
-                                 :xhandle 0
-                                 :yhandle 0
-                                 :x (* 16 3)
-                                 :y (* 16 3)
-                                 )
-
-         walls (s/make-container :children wall-tile-sprites
-                                 :scale scale
-                                 :xhandle 0
-                                 :yhandle 0
-                                 :x (* 16 3)
-                                 :y (* 16 2)
-                                 )
+         container (s/make-container :children [floor walls player lion fire] :scale 1)
 
          ]
         (m/with-sprite :player
-          [player (s/make-sprite :down :scale scale :x 0 :y -100)]
+          []
 
-          (loop [pos (vec2/vec2 50 50)
+          ;; camera tracking
+        (go
+          (loop [cam (:pos @state)]
+            (let [[cx cy] (vec2/get-xy cam)]
+
+              (s/set-pivot! container (int cx) (int cy))
+              ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
+
+              (<! (e/next-frame))
+              (let [next-pos (:pos @state)
+                    v (vec2/sub next-pos cam)
+                    mag (vec2/magnitude-squared v)]
+                (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
+
+
+          (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
                  vel (vec2/zero)]
             (let [
                   joy (vec2/vec2 (or (gp/axis 0)
@@ -338,10 +375,10 @@
                                                  (js/console.log "pass?" x y)
                                                  (js/console.log (floor-tile-locations [x y]))
                                                  (floor-tile-locations [x y]))
-                                    :h-edge 0.9
-                                    :v-edge 0.9
-                                    :minus-h-edge 0.1
-                                    :minus-v-edge 0.1}
+                                    :h-edge 0.99
+                                    :v-edge 0.7
+                                    :minus-h-edge 0.01
+                                    :minus-v-edge 0.01}
                                    (vec2/scale pos (/ 1 16))
                                    (vec2/scale new-pos (/ 1 16))
                                    )
@@ -349,7 +386,8 @@
                   new-pos (vec2/scale constrained-pos 16)
 
                   ]
-              (s/set-pos! player new-pos)
+              (swap! state assoc :pos (vec2/scale new-pos scale))
+              (s/set-pos! player (vec2/scale new-pos scale))
               (<! (e/next-frame))
               (recur new-pos vel))))
         )
