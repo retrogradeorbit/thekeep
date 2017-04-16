@@ -36,3 +36,10 @@
    :specl [64 32]
 
    })
+
+(def hero-mapping
+  {
+   :up {:pos [320 112] :size [16 16]}
+   :left {:pos [304 128] :size [16 16]}
+   :right {:pos [336 128] :size [16 16]}
+   :down {:pos [320 144] :size [16 16]}})

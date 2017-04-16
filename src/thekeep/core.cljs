@@ -6,9 +6,12 @@
             [infinitelives.pixi.tilemap :as tm]
 
             [infinitelives.utils.events :as e]
+            [infinitelives.utils.vec2 :as vec2]
+            [infinitelives.utils.gamepad :as gp]
             [infinitelives.utils.math :refer [rand-between]]
 
             [thekeep.assets :as assets]
+            [thekeep.line :as line]
 
             [cljs.core.match :refer-macros [match]]
             )
@@ -40,7 +43,7 @@
                      :damage :bottom-right
                      :score :bottom-left}}))
 
-(def scale 2)
+(def scale 1)
 
 (defn make-map-empty [[w h]]
   (mapv
@@ -228,32 +231,40 @@
     (nth tiles 4)))
 
 (defn make-tile-map []
-  (-> (make-map-empty [50 50])
+  (let [floor-tile-map
+        (-> (make-map-empty [50 50])
 
-      ;; room 1
-      (draw-floor-box [4 4] [6 7])
-      (draw-floor-box [6 5] [9 7])
-      (draw-floor-box [10 5] [7 8])
-      (draw-floor-box [14 4] [4 5])
+            ;; room 1
+            (draw-floor-box [4 4] [6 7])
+            (draw-floor-box [6 5] [9 7])
+            (draw-floor-box [10 5] [7 8])
+            (draw-floor-box [14 4] [4 5])
 
-      ;; corridor
-      (draw-floor-box [13 13] [1 3])
+            ;; corridor
+            (draw-floor-box [13 13] [1 3])
 
-      ;; room 2
-      (draw-floor-box [4 16] [15 4])
-      (draw-floor-box [14 17] [8 5])
-      (draw-floor-box [16 22] [5 3])
-      (draw-floor-box [21 22] [1 1])
+            ;; room 2
+            (draw-floor-box [4 16] [15 4])
+            (draw-floor-box [14 17] [8 5])
+            (draw-floor-box [16 22] [5 3])
+            (draw-floor-box [21 22] [1 1]))
 
-      (remap-keymap remap-expand)
-      ;(remap-keymap remap-expand)
+        floor-tiles (remap-keymap floor-tile-map remap-expand)
+        wall-tiles (-> floor-tile-map
+                       (remap-keymap remap)
+                       (remap-keymap remap-2))]
+    [floor-tiles wall-tiles]
 
-      ;(random-floors 15)
-      (remap-keymap remap)
-      (remap-keymap remap-2)
-      ;(remap-keymap remap-3)
+                                        ;(remap-keymap remap-expand)
+                                        ;(remap-keymap remap-expand)
 
-      )
+                                        ;(random-floors 15)
+
+                                        ;(remap-keymap remap-3)
+
+
+
+    )
   )
 
 
@@ -263,35 +274,84 @@
     (<! (r/load-resources canvas :ui
                           ["img/tiles2.png"]))
 
-    #_ (t/load-sprite-sheet!
-     (r/get-texture :tiles2 :nearest)
-     assets/tile-mapping)
+    (t/load-sprite-sheet!
+        (r/get-texture :tiles2 :nearest)
+        assets/hero-mapping)
 
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
-          tile-map (do
-                     (js/console.log "start")
-                     (let [mm (make-tile-map)]
-                       (js/console.log "stop")
-                       mm)
-                     )
-          tile-sprites (mapv second (tm/make-tile-sprites tile-set tile-map))
-          ]
+          [floor-tile-map wall-tile-map] (do
+                                           (js/console.log "start")
+                                           (let [mm (make-tile-map)]
+                                             (js/console.log "stop")
+                                             mm)
+                                           )
+          floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
+          floor-tile-sprites (mapv second floor-tile-results)
+          floor-tile-locations (into #{} (mapv first floor-tile-results))
+          wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))]
 
 
       (js/console.log tile-set)
 
-      (js/console.log tile-map)
+                                        ;(js/console.log tile-map)
 
-      (js/console.log tile-sprites)
+      ;(js/console.log tile-sprites)
 
       (m/with-sprite :tilemap
         [
-         level (s/make-container :children tile-sprites
-                                 :scale scale)
+         floor (s/make-container :children floor-tile-sprites
+                                 :scale scale
+                                 :xhandle 0
+                                 :yhandle 0
+                                 :x (* 16 3)
+                                 :y (* 16 3)
+                                 )
+
+         walls (s/make-container :children wall-tile-sprites
+                                 :scale scale
+                                 :xhandle 0
+                                 :yhandle 0
+                                 :x (* 16 3)
+                                 :y (* 16 2)
+                                 )
+
          ]
-        (loop []
-          (<! (e/next-frame))
-          (recur))
+        (m/with-sprite :player
+          [player (s/make-sprite :down :scale scale :x 0 :y -100)]
+
+          (loop [pos (vec2/vec2 50 50)
+                 vel (vec2/zero)]
+            (let [
+                  joy (vec2/vec2 (or (gp/axis 0)
+                                   (cond (e/is-pressed? :left) -1
+                                         (e/is-pressed? :right) 1
+                                         :default 0) )
+                               (or (gp/axis 1)
+                                   (cond (e/is-pressed? :up) -1
+                                         (e/is-pressed? :down) 1
+                                         :default 0)
+                                   ))
+                  new-pos (vec2/add pos (vec2/scale joy 2))
+
+                  constrained-pos (line/constrain
+                                   {:passable? (fn [x y]
+                                                 (js/console.log "pass?" x y)
+                                                 (js/console.log (floor-tile-locations [x y]))
+                                                 (floor-tile-locations [x y]))
+                                    :h-edge 0.9
+                                    :v-edge 0.9
+                                    :minus-h-edge 0.1
+                                    :minus-v-edge 0.1}
+                                   (vec2/scale pos (/ 1 16))
+                                   (vec2/scale new-pos (/ 1 16))
+                                   )
+
+                  new-pos (vec2/scale constrained-pos 16)
+
+                  ]
+              (s/set-pos! player new-pos)
+              (<! (e/next-frame))
+              (recur new-pos vel))))
         )
 
 
