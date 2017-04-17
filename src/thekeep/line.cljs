@@ -422,6 +422,10 @@
    offset
    (constrain opts (vec2/sub oldpos offset) (vec2/sub newpos offset))))
 
+(defn clamp [v mn mx]
+  (max
+   mn
+   (min v mx)))
 
 (defn intersect-segment [[bx by hx hy] [x y] [dx dy] [px py]]
   (let [scale-x (/ 1.0 dx)
