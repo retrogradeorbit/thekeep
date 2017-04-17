@@ -291,7 +291,11 @@
     )
   )
 
-
+(defn depth-compare [a b]
+  (cond
+    (< (s/get-y a) (s/get-y b)) -1
+    (< (s/get-y b) (s/get-y a)) 1
+    :default 0))
 
 (defonce main
   (go
@@ -324,12 +328,14 @@
           player (s/make-sprite :down :scale scale :x 0 :y 0)
           sword (s/make-sprite :sword :scale scale :x 0 :y 0 :yhandle 1.3)
 
-          lion (s/make-sprite :lion :scale scale :x (* scale 250) :y (* scale 300))
-          fire (s/make-sprite :fire :scale scale :x (* scale 175) :y (* scale 150))
+          lion (s/make-sprite :lion :scale scale :yhandle 0.8 :x (* scale 250) :y (* scale 300))
+          fire (s/make-sprite :fire :scale scale :yhandle 0.8 :x (* scale 175) :y (* scale 150))
           chest (s/make-sprite :chest :scale scale :x (* scale 240) :y (* scale 100))
           switch (s/make-sprite :switch1 :scale scale :x (* scale 80) :y (* scale 120))
 
           enemy1 (s/make-sprite :enemy1 :scale scale :x (* scale 215) :y (* scale 270))
+
+          level (s/make-container :children [chest switch enemy1 player sword lion fire])
           ]
 
 
@@ -341,7 +347,7 @@
 
       (m/with-sprite :tilemap
         [
-         container (s/make-container :children [floor walls chest switch enemy1 player sword lion fire] :scale 1)
+         container (s/make-container :children [floor walls level] :scale 1)
 
          ]
 
@@ -432,6 +438,7 @@
                 (s/set-pos! sword (vec2/scale (vec2/add new-pos (vec2/vec2 5 13)) scale))
                 (s/set-rotation! sword 0)))
 
+            (.sort (.-children level) depth-compare )
 
             (<! (e/next-frame))
             (recur new-pos vel
