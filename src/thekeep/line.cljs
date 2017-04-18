@@ -500,8 +500,42 @@
         new-pos))))
 
 
+(defn circle-vector-intersection [[h k r] [x0 y0] [x1 y1]]
+  (let [x1-x0 (- x1 x0)
+        y1-y0 (- y1 y0)
+        x0-h (- x0 h)
+        y0-k (- y0 k)
+        a (+ (* x1-x0 x1-x0) (* y1-y0 y1-y0))
+        b (+ (* 2 x1-x0 x0-h) (* 2 y1-y0 y0-k))
+        c (- (+ (* x0-h x0-h) (* y0-k y0-k))
+             (* r r))
+        desc (- (* b b) (* 4 a c))]
+    (cond
+      (neg? desc)
+      ;; no answers
+      [nil nil]
+
+      (zero? desc)
+      ;; one answer (glances circle)
+      [(/ (- b) 2 a) nil]
+
+      :default
+      (let [sqr (Math/sqrt desc)]
+        ;; two answers (through circle)
+        [(/ (+ (- b) sqr) 2 a)
+         (/ (- (- b) sqr) 2 a)]))))
+
+(defn constrain-circle [circle old-pos new-pos]
+  (let [[t1 t2] (circle-vector-intersection circle (vec2/as-vector old-pos) (vec2/as-vector new-pos))]
+    (cond
+      (nil? t1) new-pos
+      (nil? t2) new-pos
+      (< t1 1) (vec2/lerp old-pos new-pos t1)
+      (< t2 1) (vec2/lerp old-pos new-pos t2)
+      :default new-pos)))
+
 (defn test-constrain-rect []
   (js/console.log
    (constrain-rect [150 150 10 10] (vec2/vec2 152 140) (vec2/vec2 154 140))))
 
-(test-constrain-rect)
+;(test-constrain-rect)
