@@ -428,6 +428,8 @@
    (min v mx)))
 
 (defn intersect-segment [[bx by hx hy] [x y] [dx dy] [px py]]
+  ;; when dx==0 or dy==0 we have problems
+
   (let [scale-x (/ 1.0 dx)
         scale-y (/ 1.0 dy)
         sign-x (Math/sign scale-x)
@@ -454,24 +456,52 @@
     (when-not (or (> near-x far-y) (> near-y far-x))
       (let [near (max near-x near-y)
             far (min far-x far-y)]
-        (when-not (or (>= near 1) (<= far 0))
-          ;; collision
-          (let [time (clamp near 0 1)
-                hdx (* near dx)
-                hdy (* near dy)]
-            {:near near
-             :far far
-             :time time
-             :normal (if (< near-y near-x)
-                       [(- sign-x) 0]
-                       [0 (- sign-y)])
-             :delta [hdx hdy]
-             :pos [(+ x hdx) (+ y hdy)]}))))))
+        (when near
+          (js/console.log "near is" near-x near-y near)
+          (when-not (or (>= near 1) (<= far 0))
+            ;; collision
+            (let [time (clamp near 0 1)
+                  hdx (* near dx)
+                  hdy (* near dy)]
+              {:near near
+               :far far
+               :time time
+               :normal (if (< near-y near-x)
+                         [(- sign-x) 0]
+                         [0 (- sign-y)])
+               :delta [hdx hdy]
+               :pos [(+ x hdx) (+ y hdy)]})))))))
 
-(defn constrain-rect [[x1 y1] [w h] old-pos new-pos]
+(defn constrain-rect [rect old-pos new-pos]
+  (let [hit (intersect-segment
+             rect
+             (vec2/as-vector old-pos)
+             (vec2/as-vector (vec2/sub new-pos old-pos))
+             [0 0])]
+    (if hit
+      ;; collided with box... reject
+      (do
+        (js/console.log "hit!" rect old-pos new-pos hit)
+        (vec2/from-vector (:pos hit)))
 
+      ;; no collision
+      new-pos
+      )
+    )
   )
 
 (defn constrain-rects [rects old-pos new-pos]
+  (if (vec2/equals old-pos new-pos)
+    new-pos
+    (loop [[r & remain] rects
+           new-pos new-pos]
+      (if r
+        (recur remain (constrain-rect r old-pos new-pos))
+        new-pos))))
 
-  )
+
+(defn test-constrain-rect []
+  (js/console.log
+   (constrain-rect [150 150 10 10] (vec2/vec2 152 140) (vec2/vec2 154 140))))
+
+(test-constrain-rect)

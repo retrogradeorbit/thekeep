@@ -423,14 +423,24 @@
 
                 new-pos (vec2/scale constrained-pos 16)
 
+                ;_ (js/console.log pos new-pos)
+
+                new-pos (line/constrain-rects
+                         [[150 150 10 10]]
+                         pos new-pos)
+
+                ;_ (js/console.log "newpos" new-pos)
+
+                pixel-pos (vec2/scale new-pos scale)
+
                 ]
-            (swap! state assoc :pos (vec2/scale new-pos scale))
-            (s/set-pos! player (vec2/scale new-pos scale))
+            (swap! state assoc :pos pixel-pos)
+            (s/set-pos! player pixel-pos)
 
             (if (e/is-pressed? :z)
               (do
                 ;; spinning
-                (s/set-pos! sword (vec2/scale new-pos scale))
+                (s/set-pos! sword pixel-pos)
                 (s/set-rotation! sword sword-theta))
 
               (do
@@ -451,5 +461,6 @@
 
     ))
 
+#_
 (js/console.log
  )
