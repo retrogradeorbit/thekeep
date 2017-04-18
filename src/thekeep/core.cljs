@@ -198,7 +198,12 @@
   (when (not= :floor e)
     e))
 
-(defonce state (atom {:pos (vec2/vec2 (* 5 16) (* 5 16))}))
+(defonce state (atom
+                {:pos
+                 (vec2/vec2 (* 5 16) (* 5 16))
+
+                 :enemy (vec2/zero)
+                 }))
 
 (defn remap-keymap [keymap remap]
   (let [height (count keymap)
@@ -369,6 +374,7 @@
                                    (vec2/scale new-pos (/ 1 16 scale)))
                   constrained-pos (vec2/scale constrained-pos 16)
                   new-pos (vec2/scale constrained-pos scale)]
+              (swap! state assoc :enemy new-pos)
               (s/set-pos! enemy1 new-pos)
               (<! (e/next-frame))
               (recur (assoc new-boid
@@ -423,11 +429,20 @@
 
                 new-pos (vec2/scale constrained-pos 16)
 
-                ;_ (js/console.log pos new-pos)
+                ;_ (js/console.log (str @state) pos)
 
-                new-pos (line/constrain-rects
-                         [[150 150 10 10]]
-                         pos new-pos)
+                new-pos (line/constrain-circle
+                         [(/ (vec2/get-x (:enemy @state)) scale)
+                          (/ (vec2/get-y (:enemy @state)) scale)
+                          10]
+                         pos
+                         new-pos)
+
+
+
+                ;; new-pos (line/constrain-rects
+                ;;          [[150 150 10 10]]
+                ;;          pos new-pos)
 
                 ;_ (js/console.log "newpos" new-pos)
 

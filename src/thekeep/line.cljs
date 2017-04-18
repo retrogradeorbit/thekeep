@@ -510,6 +510,7 @@
         c (- (+ (* x0-h x0-h) (* y0-k y0-k))
              (* r r))
         desc (- (* b b) (* 4 a c))]
+    ;(js/console.log a b c desc)
     (cond
       (neg? desc)
       ;; no answers
@@ -525,14 +526,46 @@
         [(/ (+ (- b) sqr) 2 a)
          (/ (- (- b) sqr) 2 a)]))))
 
-(defn constrain-circle [circle old-pos new-pos]
-  (let [[t1 t2] (circle-vector-intersection circle (vec2/as-vector old-pos) (vec2/as-vector new-pos))]
+(defn circle-point-extract [[cx cy r] [x y]]
+  (let [rx (- x cx)
+        ry (- y cy)
+        ex (+ x rx)
+        ey (+ y ry)
+        [t1 t2] (circle-vector-intersection [cx cy r] [x y] [ex ey])]
     (cond
-      (nil? t1) new-pos
-      (nil? t2) new-pos
-      (< t1 1) (vec2/lerp old-pos new-pos t1)
-      (< t2 1) (vec2/lerp old-pos new-pos t2)
-      :default new-pos)))
+      (< 0 t1) (vec2/lerp (vec2/vec2 x y) (vec2/vec2 ex ey) t1)
+      (< 0 t2) (vec2/lerp (vec2/vec2 x y) (vec2/vec2 ex ey) t2)
+      :default (vec2/vec2 x y))
+    )
+  )
+
+(defn constrain-circle [circle old-pos new-pos]
+  (if (vec2/equals old-pos new-pos)
+
+    ;; not moving. extract from circle along shortest route
+    (circle-point-extract circle (vec2/as-vector new-pos))
+
+    ;; moving. collide with vector
+    (let [[t1 t2] (circle-vector-intersection circle (vec2/as-vector old-pos) (vec2/as-vector new-pos))]
+      (js/console.log t1 t2)
+      (cond
+        (nil? t1) new-pos
+        (nil? t2) new-pos
+
+        ;; leaving circle #TODO: this should be done with an inside/outside check
+        (and
+         (< 0 t1 1)
+         (neg? t2))
+        new-pos
+
+        (and
+         (neg? t2)
+         (pos? t1))
+        (vec2/lerp old-pos new-pos t2)
+
+        (< 0 t1 1) (vec2/lerp old-pos new-pos t1)
+        (< 0 t2 1) (vec2/lerp old-pos new-pos t2)
+        :default new-pos))))
 
 (defn test-constrain-rect []
   (js/console.log
