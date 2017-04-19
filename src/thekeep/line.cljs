@@ -427,6 +427,31 @@
    mn
    (min v mx)))
 
+(defn aabb-intersect-point [[cx cy hx hy] [x y]]
+  (let [dx (- x cx)
+        px (- hx (Math/abs dx))]
+    (when (pos? px)
+      (let [dy (- y cy)
+            py (- hy (Math/abs dy))]
+        (when (pos? py)
+          (if (< px py)
+            (let [sx (Math/sign dx)]
+              {:delta [(* px sx) 0]
+               :normal [sx 0]
+               :pos [(+ cx (* sx hx)) y]})
+            (let [sy (Math/sign dy)]
+              {:delta [0 (* py sy)]
+               :normal [0 sy]
+               :pos [x (+ cy (* sy hy))]})))))))
+
+(defn test-aabb-intersect-point []
+  (js/console.log (aabb-intersect-point [10 10 1 1] [5 3]))
+  (js/console.log (aabb-intersect-point [10 10 1 1] [9 9]))
+  (js/console.log (aabb-intersect-point [10 10 1 1] [10 10]))
+  (js/console.log (aabb-intersect-point [10 10 1 1] [9.2 9.6])))
+
+
+
 (defn intersect-segment [[bx by hx hy] [x y] [dx dy] [px py]]
   ;; when dx==0 or dy==0 we have problems
 
@@ -521,10 +546,34 @@
       [(/ (- b) 2 a) nil]
 
       :default
-      (let [sqr (Math/sqrt desc)]
+      (let [sqr (Math/sqrt desc)
+            t1 (/ (+ (- b) sqr) 2 a)
+            t2 (/ (- (- b) sqr) 2 a)
+            ]
         ;; two answers (through circle)
-        [(/ (+ (- b) sqr) 2 a)
-         (/ (- (- b) sqr) 2 a)]))))
+        [(min t1 t2) (max t1 t2)]))))
+
+(defn both-inside?
+  "is start and end both inside the circle?"
+  [t1 t2]
+  (and
+   (neg? t1)
+   (> t2 1)))
+
+(defn outside->inside? [t1 t2]
+  (and
+   (< 0 t1 1)
+   (> t2 1)))
+
+(defn inside->outside? [t1 t2]
+  (and
+   (< t1 0)
+   (< 0 t2 1)))
+
+(defn outside->outside? [t1 t2]
+  (and
+   (< 0 t1 1)
+   (< 0 t2 2)))
 
 (defn circle-point-extract [[cx cy r] [x y]]
   (let [rx (- x cx)
@@ -551,20 +600,10 @@
       (cond
         (nil? t1) new-pos
         (nil? t2) new-pos
-
-        ;; leaving circle #TODO: this should be done with an inside/outside check
-        (and
-         (< 0 t1 1)
-         (neg? t2))
-        new-pos
-
-        (and
-         (neg? t2)
-         (pos? t1))
-        (vec2/lerp old-pos new-pos t2)
-
-        (< 0 t1 1) (vec2/lerp old-pos new-pos t1)
-        (< 0 t2 1) (vec2/lerp old-pos new-pos t2)
+        (both-inside? t1 t2) (circle-point-extract circle (vec2/as-vector old-pos))
+        (outside->inside? t1 t2) (vec2/lerp old-pos new-pos t1)
+        (inside->outside? t1 t2) new-pos
+        (outside->outside? t1 t2) (vec2/lerp old-pos new-pos t1)
         :default new-pos))))
 
 (defn test-constrain-rect []

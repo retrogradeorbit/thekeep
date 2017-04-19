@@ -412,7 +412,15 @@
                                          (e/is-pressed? :down) 1
                                          :default 0)
                                    ))
+
                 new-pos (vec2/add pos (vec2/scale joy 2))
+
+                new-pos (line/constrain-circle
+                         [(/ (vec2/get-x (:enemy @state)) scale)
+                          (/ (vec2/get-y (:enemy @state)) scale)
+                          10]
+                         pos
+                         new-pos)
 
                 constrained-pos (line/constrain
                                  {:passable? (fn [x y]
@@ -431,12 +439,7 @@
 
                 ;_ (js/console.log (str @state) pos)
 
-                new-pos (line/constrain-circle
-                         [(/ (vec2/get-x (:enemy @state)) scale)
-                          (/ (vec2/get-y (:enemy @state)) scale)
-                          10]
-                         pos
-                         new-pos)
+
 
 
 
