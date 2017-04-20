@@ -350,7 +350,7 @@
                                         ;(js/console.log tile-map)
 
                                         ;(js/console.log tile-sprites)
-      (spatial/new-spatial! :default 8)
+      (spatial/new-spatial! :default 16)
       (m/with-sprite :tilemap
         [
          container (s/make-container :children [floor walls level] :scale 1)
@@ -379,19 +379,21 @@
                     new-pos (vec2/scale constrained-pos scale)]
 
                 ;; collided with sword?
-                (let [matched (->>
-                         (spatial/query (:default @spatial/spatial-hashes)
-                                        (vec2/as-vector (vec2/sub pos (vec2/vec2 4 4)))
-                                        (vec2/as-vector (vec2/add pos (vec2/vec2 4 4))))
+                (let [res (spatial/query (:default @spatial/spatial-hashes)
+                                        (vec2/as-vector (vec2/sub pos (vec2/vec2 16 16)))
+                                        (vec2/as-vector (vec2/add pos (vec2/vec2 16 16))))
+                      matched (->> res
                          keys
                          (filter #(= :sword %))
                          )]
-                  (js/console.log (count matched))
+                  (when true ;(pos? (count matched))
+                    (js/console.log (count matched) res
+                                    (str (:default @spatial/spatial-hashes))))
                   )
 
                 (swap! state assoc :enemy new-pos)
                 (spatial/move-in-spatial :default :enemy1
-                                       (vec2/as-vector (:pos boid))
+                                       (vec2/as-vector pos)
                                        (vec2/as-vector new-pos))
                 (s/set-pos! enemy1 new-pos)
 
@@ -406,8 +408,7 @@
 
         ;; camera tracking
         (go
-          (spatial/add-to-spatial! :default :sword (vec2/as-vector (:pos @state)))
-          (spatial/add-to-spatial! :default :player (vec2/as-vector (:pos @state)))
+
           (loop [cam (:pos @state)]
             (let [[cx cy] (vec2/get-xy cam)]
 
@@ -419,6 +420,9 @@
                     v (vec2/sub next-pos cam)
                     mag (vec2/magnitude-squared v)]
                 (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
+
+        (spatial/add-to-spatial! :default :sword [(* 5 16) (* 5 16)])
+          (spatial/add-to-spatial! :default :player [(* 5 16) (* 5 16)])
 
         (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
                vel (vec2/zero)
@@ -475,8 +479,8 @@
                 ]
             (swap! state assoc :pos pixel-pos)
             (s/set-pos! player pixel-pos)
-            (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector pixel-pos))
-            (spatial/move-in-spatial :default :player (vec2/as-vector pos) (vec2/as-vector pixel-pos))
+            (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector new-pos))
+            (spatial/move-in-spatial :default :player (vec2/as-vector pos) (vec2/as-vector new-pos))
 
             (if (e/is-pressed? :z)
               (do
