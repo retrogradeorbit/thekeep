@@ -6,6 +6,7 @@
             [infinitelives.pixi.tilemap :as tm]
 
             [infinitelives.utils.events :as e]
+            [infinitelives.utils.spatial :as spatial]
             [infinitelives.utils.vec2 :as vec2]
             [infinitelives.utils.gamepad :as gp]
             [infinitelives.utils.math :refer [rand-between]]
@@ -349,7 +350,7 @@
                                         ;(js/console.log tile-map)
 
                                         ;(js/console.log tile-sprites)
-
+      (spatial/new-spatial! :default 8)
       (m/with-sprite :tilemap
         [
          container (s/make-container :children [floor walls level] :scale 1)
@@ -358,35 +359,55 @@
 
         ;; enemy1
         (go
-          (loop [boid {:mass 1.0 :pos (vec2/vec2 (* scale 215) (* scale 270))
-                       :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
-            (let [pos (:pos boid)
-                  new-boid (b/seek boid (:pos @state))
-                  new-pos (:pos new-boid)
-                  constrained-pos (line/constrain
-                                   {:passable? (fn [x y]
-                                                 (floor-tile-locations [x y]))
-                                    :h-edge 0.99
-                                    :v-edge 0.7
-                                    :minus-h-edge 0.01
-                                    :minus-v-edge 0.01}
-                                   (vec2/scale pos (/ 1 16 scale))
-                                   (vec2/scale new-pos (/ 1 16 scale)))
-                  constrained-pos (vec2/scale constrained-pos 16)
-                  new-pos (vec2/scale constrained-pos scale)]
-              (swap! state assoc :enemy new-pos)
-              (s/set-pos! enemy1 new-pos)
-              (<! (e/next-frame))
-              (recur (assoc new-boid
-                            :pos new-pos
-                            :vel (vec2/zero))))
+          (let [initial-pos (vec2/vec2 (* scale 215) (* scale 270))]
+            (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
+            (loop [boid {:mass 1.0 :pos initial-pos
+                         :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
+              (let [pos (:pos boid)
+                    new-boid (b/seek boid (:pos @state))
+                    new-pos (:pos new-boid)
+                    constrained-pos (line/constrain
+                                     {:passable? (fn [x y]
+                                                   (floor-tile-locations [x y]))
+                                      :h-edge 0.99
+                                      :v-edge 0.7
+                                      :minus-h-edge 0.01
+                                      :minus-v-edge 0.01}
+                                     (vec2/scale pos (/ 1 16 scale))
+                                     (vec2/scale new-pos (/ 1 16 scale)))
+                    constrained-pos (vec2/scale constrained-pos 16)
+                    new-pos (vec2/scale constrained-pos scale)]
 
-            )
+                ;; collided with sword?
+                (let [matched (->>
+                         (spatial/query (:default @spatial/spatial-hashes)
+                                        (vec2/as-vector (vec2/sub pos (vec2/vec2 4 4)))
+                                        (vec2/as-vector (vec2/add pos (vec2/vec2 4 4))))
+                         keys
+                         (filter #(= :sword %))
+                         )]
+                  (js/console.log (count matched))
+                  )
+
+                (swap! state assoc :enemy new-pos)
+                (spatial/move-in-spatial :default :enemy1
+                                       (vec2/as-vector (:pos boid))
+                                       (vec2/as-vector new-pos))
+                (s/set-pos! enemy1 new-pos)
+
+                (<! (e/next-frame))
+                (recur (assoc new-boid
+                              :pos new-pos
+                              :vel (vec2/zero))))
+
+              ))
           )
 
 
         ;; camera tracking
         (go
+          (spatial/add-to-spatial! :default :sword (vec2/as-vector (:pos @state)))
+          (spatial/add-to-spatial! :default :player (vec2/as-vector (:pos @state)))
           (loop [cam (:pos @state)]
             (let [[cx cy] (vec2/get-xy cam)]
 
@@ -454,6 +475,8 @@
                 ]
             (swap! state assoc :pos pixel-pos)
             (s/set-pos! player pixel-pos)
+            (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector pixel-pos))
+            (spatial/move-in-spatial :default :player (vec2/as-vector pos) (vec2/as-vector pixel-pos))
 
             (if (e/is-pressed? :z)
               (do
