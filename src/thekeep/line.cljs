@@ -596,7 +596,6 @@
 
     ;; moving. collide with vector
     (let [[t1 t2] (circle-vector-intersection circle (vec2/as-vector old-pos) (vec2/as-vector new-pos))]
-      (js/console.log t1 t2)
       (cond
         (nil? t1) new-pos
         (nil? t2) new-pos

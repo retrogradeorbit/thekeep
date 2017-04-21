@@ -339,9 +339,9 @@
           chest (s/make-sprite :chest :scale scale :x (* scale 240) :y (* scale 100))
           switch (s/make-sprite :switch1 :scale scale :x (* scale 80) :y (* scale 120))
 
-          enemy1 (s/make-sprite :enemy1 :scale scale :x (* scale 215) :y (* scale 270))
+                                        ;enemy1 (s/make-sprite :enemy1 :scale scale :x (* scale 215) :y (* scale 270))
 
-          level (s/make-container :children [chest switch enemy1 player sword lion fire])
+          level (s/make-container :children [chest switch player sword lion fire])
           ]
 
 
@@ -350,7 +350,7 @@
                                         ;(js/console.log tile-map)
 
                                         ;(js/console.log tile-sprites)
-      (spatial/new-spatial! :default 16)
+      (spatial/new-spatial! :default 8)
       (m/with-sprite :tilemap
         [
          container (s/make-container :children [floor walls level] :scale 1)
@@ -359,50 +359,63 @@
 
         ;; enemy1
         (go
-          (let [initial-pos (vec2/vec2 (* scale 215) (* scale 270))]
-            (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
-            (loop [boid {:mass 1.0 :pos initial-pos
-                         :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
-              (let [pos (:pos boid)
-                    new-boid (b/seek boid (:pos @state))
-                    new-pos (:pos new-boid)
-                    constrained-pos (line/constrain
-                                     {:passable? (fn [x y]
-                                                   (floor-tile-locations [x y]))
-                                      :h-edge 0.99
-                                      :v-edge 0.7
-                                      :minus-h-edge 0.01
-                                      :minus-v-edge 0.01}
-                                     (vec2/scale pos (/ 1 16 scale))
-                                     (vec2/scale new-pos (/ 1 16 scale)))
-                    constrained-pos (vec2/scale constrained-pos 16)
-                    new-pos (vec2/scale constrained-pos scale)]
+          (let [initial-pos (vec2/vec2 220 270)]
+            (m/with-sprite level
+              [enemy1 (s/make-sprite :enemy1 :scale scale :x 220 :y 270)]
+              (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
+              (loop [boid {:mass 1.0 :pos initial-pos
+                           :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
+                (let [pos (:pos boid)
+                      new-boid (b/seek boid (:pos @state))
+                      new-pos (:pos new-boid)
+                      constrained-pos (line/constrain
+                                       {:passable? (fn [x y]
+                                                     (floor-tile-locations [x y]))
+                                        :h-edge 0.99
+                                        :v-edge 0.7
+                                        :minus-h-edge 0.01
+                                        :minus-v-edge 0.01}
+                                       (vec2/scale pos (/ 1 16))
+                                       (vec2/scale new-pos (/ 1 16)))
+                      new-pos (vec2/scale constrained-pos 16)
+                      pixel-pos (vec2/scale new-pos scale)]
 
-                ;; collided with sword?
-                (let [res (spatial/query (:default @spatial/spatial-hashes)
-                                        (vec2/as-vector (vec2/sub pos (vec2/vec2 16 16)))
-                                        (vec2/as-vector (vec2/add pos (vec2/vec2 16 16))))
-                      matched (->> res
-                         keys
-                         (filter #(= :sword %))
-                         )]
-                  (when true ;(pos? (count matched))
-                    (js/console.log (count matched) res
-                                    (str (:default @spatial/spatial-hashes))))
-                  )
+                  ;; collided with sword?
+                  (let [res (spatial/query (:default @spatial/spatial-hashes)
+                                           (vec2/as-vector (vec2/sub pos (vec2/vec2 32 32)))
+                                           (vec2/as-vector (vec2/add pos (vec2/vec2 32 32))))
+                        matched (->> res
+                                     keys
+                                     (filter #(= :sword %))
+                                     )
+                        hit (when (pos? (count matched))
+                              (let [{:keys [sword]} @state]
+                                (when sword
+                                  (let [enemy-sword (-> pos (vec2/sub sword) vec2/magnitude)]
+                                    (when (< enemy-sword 10)
+                                      :hit
+                                      )))))]
 
-                (swap! state assoc :enemy new-pos)
-                (spatial/move-in-spatial :default :enemy1
-                                       (vec2/as-vector pos)
-                                       (vec2/as-vector new-pos))
-                (s/set-pos! enemy1 new-pos)
 
-                (<! (e/next-frame))
-                (recur (assoc new-boid
-                              :pos new-pos
-                              :vel (vec2/zero))))
+                    (swap! state assoc :enemy new-pos)
+                    (spatial/move-in-spatial :default :enemy1
+                                             (vec2/as-vector pos)
+                                             (vec2/as-vector new-pos))
+                    (s/set-pos! enemy1 pixel-pos)
 
-              ))
+                    (<! (e/next-frame))
+                    (let [next-boid (assoc new-boid
+                                           :pos new-pos
+                                           :vel (vec2/zero))]
+                      (if hit
+                        (recur (assoc next-boid
+                                      :pos (vec2/add new-pos
+                                                     (vec2/scale
+                                                      (vec2/sub new-pos (:pos @state))
+                                                      0.4))))
+                        (recur next-boid)))))
+
+                )))
           )
 
 
@@ -422,7 +435,7 @@
                 (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
 
         (spatial/add-to-spatial! :default :sword [(* 5 16) (* 5 16)])
-          (spatial/add-to-spatial! :default :player [(* 5 16) (* 5 16)])
+        (spatial/add-to-spatial! :default :player [(* 5 16) (* 5 16)])
 
         (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
                vel (vec2/zero)
@@ -449,8 +462,8 @@
 
                 constrained-pos (line/constrain
                                  {:passable? (fn [x y]
-                                               ;(js/console.log "pass?" x y)
-                                               ;(js/console.log (floor-tile-locations [x y]))
+                                        ;(js/console.log "pass?" x y)
+                                        ;(js/console.log (floor-tile-locations [x y]))
                                                (floor-tile-locations [x y]))
                                   :h-edge 0.99
                                   :v-edge 0.7
@@ -462,7 +475,7 @@
 
                 new-pos (vec2/scale constrained-pos 16)
 
-                ;_ (js/console.log (str @state) pos)
+                                        ;_ (js/console.log (str @state) pos)
 
 
 
@@ -472,12 +485,12 @@
                 ;;          [[150 150 10 10]]
                 ;;          pos new-pos)
 
-                ;_ (js/console.log "newpos" new-pos)
+                                        ;_ (js/console.log "newpos" new-pos)
 
                 pixel-pos (vec2/scale new-pos scale)
 
                 ]
-            (swap! state assoc :pos pixel-pos)
+            (swap! state assoc :pos new-pos)
             (s/set-pos! player pixel-pos)
             (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector new-pos))
             (spatial/move-in-spatial :default :player (vec2/as-vector pos) (vec2/as-vector new-pos))
@@ -486,12 +499,14 @@
               (do
                 ;; spinning
                 (s/set-pos! sword pixel-pos)
-                (s/set-rotation! sword sword-theta))
+                (s/set-rotation! sword sword-theta)
+                (swap! state assoc :sword (vec2/add new-pos (-> (vec2/vec2 0 -20) (vec2/rotate sword-theta)))))
 
               (do
                 ;; holding
                 (s/set-pos! sword (vec2/scale (vec2/add new-pos (vec2/vec2 5 13)) scale))
-                (s/set-rotation! sword 0)))
+                (s/set-rotation! sword 0)
+                (swap! state assoc :sword nil)))
 
             (.sort (.-children level) depth-compare )
 
