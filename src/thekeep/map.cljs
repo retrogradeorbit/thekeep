@@ -18,6 +18,9 @@
             m
             co-ords)))
 
+(defn draw-floor-box2 [m [x y] [w h]]
+  (draw-floor-box m [(max 1 (+ x (rand-between -1 1))) (max 1 (+ y (rand-between -1 1)))] [w h]))
+
 (defn remap [a b c
              d e f
              g h i]
@@ -204,46 +207,91 @@
       e)
     e))
 
+(defn make-floor-walls [floor-tile-map]
+  [(-> floor-tile-map
+       (remap-keymap remap-expand))
+   (-> floor-tile-map
+       (remap-keymap remap)
+       (remap-keymap remap-2)
+       (remap-keymap scatter-rubble)
+       (remap-keymap scatter-walldec))])
+
 (defn make-tile-map []
   (let [floor-tile-map
-        (-> (make-map-empty [50 50])
+        (-> (make-map-empty [100 100])
 
             ;; room 1
-            (draw-floor-box [4 4] [6 7])
-            (draw-floor-box [6 5] [9 7])
-            (draw-floor-box [10 5] [7 8])
-            (draw-floor-box [14 4] [4 5])
+            (draw-floor-box2 [4 4] [6 7])
+            (draw-floor-box2 [6 5] [9 7])
+            (draw-floor-box2 [10 5] [7 8])
+            (draw-floor-box2 [14 4] [4 5])
 
             ;; corridor
-            (draw-floor-box [13 13] [1 3])
+            (draw-floor-box2 [13 12] [1 7])
 
             ;; room 2
-            (draw-floor-box [4 16] [15 4])
-            (draw-floor-box [14 17] [8 5])
-            (draw-floor-box [16 22] [5 3])
-            (draw-floor-box [21 22] [1 1]))
+            (draw-floor-box2 [4 18] [15 4])
+            (draw-floor-box2 [14 19] [8 6])
+            (draw-floor-box2 [16 23] [5 3])
+            (draw-floor-box2 [21 23] [1 1])
 
-        floor-tiles (-> floor-tile-map
-                        ;(remap-keymap scatter-rubble)
-                        (remap-keymap remap-expand))
-        wall-tiles (-> floor-tile-map
+            ;; corridor
+            (draw-floor-box2 [20 22] [33 1])
+            (draw-floor-box2 [35 19] [1 14])
+            (draw-floor-box2 [42 12] [1 13])
 
-                       (remap-keymap remap)
-                       (remap-keymap remap-2)
-                       (remap-keymap scatter-rubble)
-                       (remap-keymap scatter-walldec
-                                     )
-                       )]
-    [floor-tiles wall-tiles]
+            ;; room 3
+            (draw-floor-box2 [37 8] [10 5])
+            (draw-floor-box2 [39 7] [8 6])
+            (draw-floor-box2 [33 5] [4 4])
+            (draw-floor-box2 [35 6] [7 3])
 
-                                        ;(remap-keymap remap-expand)
-                                        ;(remap-keymap remap-expand)
+            ;; room 4
+            (draw-floor-box2 [50 15] [10 10])
 
-                                        ;(random-floors 15)
-
-                                        ;(remap-keymap remap-3)
-
-
-
+            ;; room 5
+            (draw-floor-box2 [30 30] [10 10])
+            )]
+    (make-floor-walls floor-tile-map)
     )
   )
+
+
+(def title
+  [
+   "   ...... ..                 "
+   "     ..   ..     ....        "
+   "     ..   ....  ..  ..       "
+   "     ..   .. .. .....        "
+   "     ..   .. .. ..           "
+   "     .    .. .   ....        "
+   "                             "
+   "                             "
+   " .  ..                .....  "
+   " . ..    ....         ..  .. "
+   " ...    ..  .   ....  ..  .. "
+   " ...    .....  ..  .  .....  "
+   " . ..   ..     .....  ..     "
+   " .  ..   ....  ..     ..     "
+   " .   ..         ....  ..     "
+   "                             "
+ ])
+
+(def title-map
+  (mapv
+   (fn [line] (mapv #(when (= % ".") :floor) line))
+   title))
+
+(defn doubleup [m]
+  (into []
+        (apply concat (for [x m] [x x]))))
+
+(defn x2 [m]
+  (into []
+        (for [l (doubleup m)]
+          (doubleup l)
+          )))
+
+(defn make-title-screen-map []
+
+  (make-floor-walls (x2 title-map)))

@@ -89,7 +89,7 @@
                                   :vel
                                   (vec2/scale
                                    (vec2/sub new-pos (:pos @state))
-                                   2))
+                                   16))
                            (dec hitcount))
                     (recur next-boid
                            hitcount))
