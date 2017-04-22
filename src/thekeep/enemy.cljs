@@ -12,12 +12,26 @@
 
 (def scale 2)
 
-(defn spawn [level state floor-tile-locations]
+(defonce enemies (atom {}))
+
+(defn add! [ekey enemy]
+  (swap! enemies assoc ekey enemy))
+
+(defn remove! [ekey]
+  (swap! enemies dissoc ekey))
+
+(defn count-enemies []
+  (count @enemies))
+
+(defn spawn [level state floor-tile-locations [x y]]
   (go
-    (let [initial-pos (vec2/vec2 220 270)]
+    (let [initial-pos (vec2/vec2 x y)
+          bkey [:enemy (keyword (gensym))]
+          ]
       (m/with-sprite level
-        [enemy1 (s/make-sprite :enemy1 :scale scale :x 220 :y 270)]
-        (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
+        [enemy1 (s/make-sprite :enemy1 :scale scale :x x :y y)]
+        (add! bkey enemy1)
+        (spatial/add-to-spatial! :default bkey (vec2/as-vector initial-pos))
         (loop [
                boid {:mass 1.0 :pos initial-pos
                      :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}
@@ -43,7 +57,7 @@
                                      (vec2/as-vector (vec2/add pos (vec2/vec2 32 32))))
                   matched (->> res
                                keys
-                               (filter #(= :sword %))
+                               (filter #(= :sword (first %)))
                                )
                   hit (when (pos? (count matched))
                         (let [{:keys [sword]} @state]
@@ -55,7 +69,7 @@
 
 
               (swap! state assoc :enemy new-pos)
-              (spatial/move-in-spatial :default :enemy1
+              (spatial/move-in-spatial :default bkey
                                        (vec2/as-vector pos)
                                        (vec2/as-vector new-pos))
               (s/set-pos! enemy1 pixel-pos)
@@ -81,7 +95,9 @@
                            hitcount))
 
                   ;;die
-                  (spatial/remove-from-spatial :default :enemy1 (vec2/as-vector new-pos))
+                  (do
+                    (spatial/remove-from-spatial :default bkey (vec2/as-vector new-pos))
+                    (remove! bkey))
                   ))))
 
           )))
