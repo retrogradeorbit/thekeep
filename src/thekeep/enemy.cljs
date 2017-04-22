@@ -1,0 +1,89 @@
+(ns thekeep.enemy
+  (:require [infinitelives.pixi.sprite :as s]
+            [infinitelives.utils.events :as e]
+            [infinitelives.utils.boid :as b]
+            [thekeep.line :as line]
+            [infinitelives.utils.vec2 :as vec2]
+            [infinitelives.utils.spatial :as spatial])
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [infinitelives.pixi.macros :as m] )
+
+  )
+
+(def scale 2)
+
+(defn spawn [level state floor-tile-locations]
+  (go
+    (let [initial-pos (vec2/vec2 220 270)]
+      (m/with-sprite level
+        [enemy1 (s/make-sprite :enemy1 :scale scale :x 220 :y 270)]
+        (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
+        (loop [
+               boid {:mass 1.0 :pos initial-pos
+                     :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}
+               hitcount 20]
+          (let [pos (:pos boid)
+                new-boid (b/seek boid (:pos @state))
+                new-pos (:pos new-boid)
+                constrained-pos (line/constrain
+                                 {:passable? (fn [x y]
+                                               (floor-tile-locations [x y]))
+                                  :h-edge 0.99
+                                  :v-edge 0.7
+                                  :minus-h-edge 0.01
+                                  :minus-v-edge 0.01}
+                                 (vec2/scale pos (/ 1 16))
+                                 (vec2/scale new-pos (/ 1 16)))
+                new-pos (vec2/scale constrained-pos 16)
+                pixel-pos (vec2/scale new-pos scale)]
+
+            ;; collided with sword?
+            (let [res (spatial/query (:default @spatial/spatial-hashes)
+                                     (vec2/as-vector (vec2/sub pos (vec2/vec2 32 32)))
+                                     (vec2/as-vector (vec2/add pos (vec2/vec2 32 32))))
+                  matched (->> res
+                               keys
+                               (filter #(= :sword %))
+                               )
+                  hit (when (pos? (count matched))
+                        (let [{:keys [sword]} @state]
+                          (when sword
+                            (let [enemy-sword (-> pos (vec2/sub sword) vec2/magnitude)]
+                              (when (< enemy-sword 10)
+                                :hit
+                                )))))]
+
+
+              (swap! state assoc :enemy new-pos)
+              (spatial/move-in-spatial :default :enemy1
+                                       (vec2/as-vector pos)
+                                       (vec2/as-vector new-pos))
+              (s/set-pos! enemy1 pixel-pos)
+
+              (<! (e/next-frame))
+              (let [next-boid (assoc new-boid
+                                     :pos new-pos
+                                     :vel (vec2/zero))]
+                (if (pos? hitcount)
+                  ;; live
+                  (if hit
+                    (recur (assoc next-boid
+                                  #_ :pos #_ (vec2/add new-pos
+                                                       (vec2/scale
+                                                        (vec2/sub new-pos (:pos @state))
+                                                        0.4))
+                                  :vel
+                                  (vec2/scale
+                                   (vec2/sub new-pos (:pos @state))
+                                   2))
+                           (dec hitcount))
+                    (recur next-boid
+                           hitcount))
+
+                  ;;die
+                  (spatial/remove-from-spatial :default :enemy1 (vec2/as-vector new-pos))
+                  ))))
+
+          )))
+    )
+  )
