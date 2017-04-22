@@ -45,7 +45,8 @@
            :expand true
            :origins {:top-text :top
                      :damage :bottom-right
-                     :score :bottom-left}}))
+                     :score :bottom-left
+                     :tilemap :top-left}}))
 
 (def scale 2)
 
@@ -123,7 +124,7 @@
 
         ;; enemys
         (go (while true
-              (<! (enemy/spawn level state floor-tile-locations ))))
+              (<! (enemy/spawn level state floor-tile-locations [220 270]))))
 
 
         ;; camera tracking
@@ -136,13 +137,13 @@
                                         ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
 
               (<! (e/next-frame))
-              (let [next-pos (:pos @state)
+              (let [next-pos (vec2/scale (:pos @state) 0.5)
                     v (vec2/sub next-pos cam)
                     mag (vec2/magnitude-squared v)]
                 (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
 
-        (spatial/add-to-spatial! :default :sword [(* 5 16) (* 5 16)])
-        (spatial/add-to-spatial! :default :player [(* 5 16) (* 5 16)])
+        (spatial/add-to-spatial! :default [:sword] [(* 5 16) (* 5 16)])
+        (spatial/add-to-spatial! :default [:player] [(* 5 16) (* 5 16)])
 
         (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
                bounce (vec2/zero)
@@ -161,18 +162,18 @@
 
                 new-pos (vec2/add pos (vec2/scale joy 2))
 
-                new-pos (line/constrain-circle
-                         [(/ (vec2/get-x (:enemy @state)) scale)
-                          (/ (vec2/get-y (:enemy @state)) scale)
-                          10]
-                         pos
-                         new-pos)
+                ;; new-pos (line/constrain-circle
+                ;;          [(/ (vec2/get-x (:enemy @state)) scale)
+                ;;           (/ (vec2/get-y (:enemy @state)) scale)
+                ;;           10]
+                ;;          pos
+                ;;          new-pos)
 
                 res (spatial/query (:default @spatial/spatial-hashes)
                                    (vec2/as-vector (vec2/sub pos (vec2/vec2 4 4)))
                                    (vec2/as-vector (vec2/add pos (vec2/vec2 4 4))))
                 matched (->> res
-                             (filter #(= :enemy1 (first %)))
+                             (filter #(= :enemy (first (first %))))
                              )
                 hit (when (pos? (count matched))
                       (let [[xe ye] (-> matched first second)
@@ -208,8 +209,8 @@
 
             (swap! state assoc :pos new-pos)
             (s/set-pos! player pixel-pos)
-            (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector new-pos))
-            (spatial/move-in-spatial :default :player (vec2/as-vector pos) (vec2/as-vector new-pos))
+            (spatial/move-in-spatial :default [:sword] (vec2/as-vector pos) (vec2/as-vector new-pos))
+            (spatial/move-in-spatial :default [:player] (vec2/as-vector pos) (vec2/as-vector new-pos))
 
             (if (e/is-pressed? :z)
               (do
