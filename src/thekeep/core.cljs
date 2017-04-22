@@ -409,10 +409,14 @@
                                            :vel (vec2/zero))]
                       (if hit
                         (recur (assoc next-boid
-                                      :pos (vec2/add new-pos
-                                                     (vec2/scale
-                                                      (vec2/sub new-pos (:pos @state))
-                                                      0.4))))
+                                      #_ :pos #_ (vec2/add new-pos
+                                                           (vec2/scale
+                                                            (vec2/sub new-pos (:pos @state))
+                                                            0.4))
+                                      :vel
+                                      (vec2/scale
+                                       (vec2/sub new-pos (:pos @state))
+                                       2)))
                         (recur next-boid)))))
 
                 )))
@@ -438,6 +442,7 @@
         (spatial/add-to-spatial! :default :player [(* 5 16) (* 5 16)])
 
         (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
+               bounce (vec2/zero)
                vel (vec2/zero)
                sword-theta 0.0]
           (let [
@@ -460,6 +465,22 @@
                          pos
                          new-pos)
 
+                res (spatial/query (:default @spatial/spatial-hashes)
+                                   (vec2/as-vector (vec2/sub pos (vec2/vec2 4 4)))
+                                   (vec2/as-vector (vec2/add pos (vec2/vec2 4 4))))
+                matched (->> res
+                             (filter #(= :enemy1 (first %)))
+                             )
+                hit (when (pos? (count matched))
+                      (let [[xe ye] (-> matched first second)
+                            epos (vec2/vec2 xe ye)
+                            player->enemy (vec2/sub epos pos)]
+                        (vec2/scale player->enemy -1)))
+
+
+                new-pos (vec2/add new-pos bounce)
+
+
                 constrained-pos (line/constrain
                                  {:passable? (fn [x y]
                                         ;(js/console.log "pass?" x y)
@@ -475,21 +496,13 @@
 
                 new-pos (vec2/scale constrained-pos 16)
 
-                                        ;_ (js/console.log (str @state) pos)
-
-
-
-
-
-                ;; new-pos (line/constrain-rects
-                ;;          [[150 150 10 10]]
-                ;;          pos new-pos)
-
-                                        ;_ (js/console.log "newpos" new-pos)
-
                 pixel-pos (vec2/scale new-pos scale)
-
                 ]
+
+
+
+              ;; handle hit
+
             (swap! state assoc :pos new-pos)
             (s/set-pos! player pixel-pos)
             (spatial/move-in-spatial :default :sword (vec2/as-vector pos) (vec2/as-vector new-pos))
@@ -511,7 +524,14 @@
             (.sort (.-children level) depth-compare )
 
             (<! (e/next-frame))
-            (recur new-pos vel
+
+            (js/console.log bounce)
+
+            (recur new-pos
+                   (if hit
+                     hit
+                     (vec2/scale bounce 0.5))
+                   vel
                    (+ sword-theta 0.2))))
         )
 
