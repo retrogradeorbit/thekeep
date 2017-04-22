@@ -17,7 +17,7 @@
             [thekeep.map :as themap]
             [thekeep.enemy :as enemy]
 
-
+            [cljs.core.async :refer [timeout]]
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [infinitelives.pixi.macros :as m] ))
@@ -40,12 +40,13 @@
 (defonce bg-colour 0x2F283A)
 
 (defonce canvas
-  (c/init {:layers [:bg :tilemap :player :ui]
+  (c/init {:layers [:bg :tilemap :player :hearts :ui]
            :background bg-colour
            :expand true
+           :translate {:hearts [32 -32]}
            :origins {:top-text :top
                      :damage :bottom-right
-                     :score :bottom-left
+                     :hearts :bottom-left
                      :tilemap :top-left}}))
 
 (def scale 2)
@@ -53,6 +54,8 @@
 (defonce state (atom
                 {:pos
                  (vec2/vec2 (* 5 16) (* 5 16))
+
+                 :health 100
 
                  :sword nil
 
@@ -111,6 +114,24 @@
 
 
       (js/console.log tile-set)
+
+      (go
+        (m/with-sprite-set :hearts
+          [hearts (mapv #(s/make-sprite :heart :scale 2 :x (* 32 %)) (range 5))]
+          (loop []
+            (let [health (:health @state)
+                  num (max 0 (Math/floor (/ health 20)))]
+              (js/console.log num)
+              (doseq [n (range num)]
+                (s/set-visible! (hearts n) true))
+              (doseq [n (range num 5)]
+                (s/set-visible! (hearts n) false))
+              (<! (timeout 300))
+              (recur)))
+
+
+          (<! (e/wait-frames 600))
+          ))
 
                                         ;(js/console.log tile-map)
 
@@ -206,6 +227,8 @@
 
 
             ;; handle hit
+            (when hit
+              (swap! state update :health - 3))
 
             (swap! state assoc :pos new-pos)
             (s/set-pos! player pixel-pos)
@@ -228,13 +251,13 @@
             (.sort (.-children level) depth-compare )
 
             (<! (e/next-frame))
-
-            (recur new-pos
-                   (if hit
-                     hit
-                     (vec2/scale bounce 0.5))
-                   vel
-                   (+ sword-theta 0.2))))
+            (when (pos? (:health @state))
+              (recur new-pos
+                     (if hit
+                       hit
+                       (vec2/scale bounce 0.5))
+                     vel
+                     (+ sword-theta 0.2)))))
         )
 
 

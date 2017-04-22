@@ -69,4 +69,6 @@
    :chest {:pos [128 112] :size [16 16]}
 
    :switch1 {:pos [0 80] :size [16 16]}
+
+   :heart {:pos [304 144] :size [16 16]}
    })
