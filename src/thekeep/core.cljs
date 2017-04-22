@@ -203,7 +203,12 @@
                 {:pos
                  (vec2/vec2 (* 5 16) (* 5 16))
 
+                 :sword nil
+
                  :enemy (vec2/zero)
+
+                 :enemies []
+
                  }))
 
 (defn remap-keymap [keymap remap]
@@ -363,8 +368,10 @@
             (m/with-sprite level
               [enemy1 (s/make-sprite :enemy1 :scale scale :x 220 :y 270)]
               (spatial/add-to-spatial! :default :enemy1 (vec2/as-vector initial-pos))
-              (loop [boid {:mass 1.0 :pos initial-pos
-                           :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}]
+              (loop [
+                     boid {:mass 1.0 :pos initial-pos
+                           :vel (vec2/zero) :max-force 1.0 :max-speed 1.0}
+                     hitcount 20]
                 (let [pos (:pos boid)
                       new-boid (b/seek boid (:pos @state))
                       new-pos (:pos new-boid)
@@ -407,17 +414,25 @@
                     (let [next-boid (assoc new-boid
                                            :pos new-pos
                                            :vel (vec2/zero))]
-                      (if hit
-                        (recur (assoc next-boid
-                                      #_ :pos #_ (vec2/add new-pos
-                                                           (vec2/scale
-                                                            (vec2/sub new-pos (:pos @state))
-                                                            0.4))
-                                      :vel
-                                      (vec2/scale
-                                       (vec2/sub new-pos (:pos @state))
-                                       2)))
-                        (recur next-boid)))))
+                      (if (pos? hitcount)
+                        ;; live
+                        (if hit
+                          (recur (assoc next-boid
+                                        #_ :pos #_ (vec2/add new-pos
+                                                             (vec2/scale
+                                                              (vec2/sub new-pos (:pos @state))
+                                                              0.4))
+                                        :vel
+                                        (vec2/scale
+                                         (vec2/sub new-pos (:pos @state))
+                                         2))
+                                 (dec hitcount))
+                          (recur next-boid
+                                 hitcount))
+
+                        ;;die
+                        (spatial/remove-from-spatial :default :enemy1 (vec2/as-vector new-pos))
+                        ))))
 
                 )))
           )
@@ -524,8 +539,6 @@
             (.sort (.-children level) depth-compare )
 
             (<! (e/next-frame))
-
-            (js/console.log bounce)
 
             (recur new-pos
                    (if hit
