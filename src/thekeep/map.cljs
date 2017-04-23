@@ -218,7 +218,7 @@
 
 (defn make-tile-map []
   (let [floor-tile-map
-        (-> (make-map-empty [100 100])
+        (-> (make-map-empty [70 60])
 
             ;; room 1
             (draw-floor-box2 [4 4] [6 7])
@@ -259,6 +259,7 @@
 
 (def title
   [
+   "                             "
    "   ...... ..                 "
    "     ..   ..     ....        "
    "     ..   ....  ..  ..       "
