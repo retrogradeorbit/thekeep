@@ -51,16 +51,7 @@
 (defn run [state]
   (go
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
-          [floor-tile-map wall-tile-map] (do
-                                           (js/console.log "start")
-                                           (let [mm (themap/make-tile-map)]
-                                             (js/console.log "stop")
-                                             mm)
-                                           )
-
-
-
-                                        ;[floor-tile-map wall-tile-map] (themap/make-title-screen-map)
+          [floor-tile-map wall-tile-map] (themap/make-tile-map)
           floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
           floor-tile-sprites (mapv second floor-tile-results)
           floor-tile-locations (into #{} (mapv first floor-tile-results))
