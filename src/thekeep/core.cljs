@@ -42,14 +42,15 @@
 (defonce bg-colour 0x2F283A)
 
 (defonce canvas
-  (c/init {:layers [:bg :tilemap :player :hearts :ui]
+  (c/init {:layers [:bg :tilemap :player :hearts :title :ui]
            :background bg-colour
            :expand true
            :translate {:hearts [32 -32]}
            :origins {:top-text :top
                      :damage :bottom-right
                      :hearts :bottom-left
-                     :tilemap :top-left}}))
+                     :tilemap :top-left
+                     :title :center}}))
 
 (def scale 2)
 

@@ -1,6 +1,8 @@
 (ns thekeep.titles
   (:require [infinitelives.pixi.tilemap :as tm]
             [infinitelives.pixi.sprite :as s]
+            [infinitelives.utils.events :as e]
+            [infinitelives.utils.vec2 :as vec2]
             [thekeep.assets :as assets]
             [thekeep.map :as themap]
             [cljs.core.async :refer [timeout]])
@@ -28,6 +30,14 @@
                                   :scale scale
                                   )]
 
-      (m/with-sprite :tilemap
+      (m/with-sprite :title
         [container (s/make-container :children [floor walls] :scale 1)]
-        (<! (timeout 2000))))))
+        (loop [theta 0]
+          (let [[x y] (vec2/get-xy (vec2/add (vec2/vec2 -750 -500) (vec2/rotate (vec2/vec2 300 0) theta )))]
+            (s/set-pos! container (vec2/vec2
+                                   ;x y
+                                   (int x) (int y)
+                                   ))
+            (<! (e/next-frame))
+            (when-not (e/is-pressed? :space)
+              (recur (+ theta 0.01)))))))))
