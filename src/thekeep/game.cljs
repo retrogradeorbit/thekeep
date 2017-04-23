@@ -91,7 +91,9 @@
         ;; enemys
         (go (while true
               (enemy/spawn level state floor-tile-locations [250 285])
-              (<! (timeout 3000))))
+              (<! (timeout 300))
+              (while (> (enemy/count-enemies) 5)
+                (<! (timeout 100)))))
 
 
         ;; camera tracking
