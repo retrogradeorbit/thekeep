@@ -16,6 +16,7 @@
             [thekeep.line :as line]
             [thekeep.map :as themap]
             [thekeep.enemy :as enemy]
+            [thekeep.titles :as titles]
 
             [cljs.core.async :refer [timeout]]
             )
@@ -100,30 +101,7 @@
      assets/hero-mapping)
 
     (while true
-      (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
-            [floor-tile-map wall-tile-map] (themap/make-title-screen-map)
-
-            floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
-            floor-tile-sprites (mapv second floor-tile-results)
-            floor-tile-locations (into #{} (mapv first floor-tile-results))
-            wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))
-
-            floor (s/make-container :children floor-tile-sprites
-                                    :scale scale
-                                    )
-
-            walls (s/make-container :children wall-tile-sprites
-                                    :scale scale
-                                    )]
-
-        (m/with-sprite :tilemap
-          [container (s/make-container :children [floor walls] :scale 1)]
-          (<! (timeout 2000))
-          )
-
-
-
-        )
+      (<! (titles/run))
 
       (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
             [floor-tile-map wall-tile-map] (do
