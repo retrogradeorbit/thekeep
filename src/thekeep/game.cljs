@@ -4,11 +4,13 @@
             [infinitelives.pixi.texture :as t]
             [infinitelives.pixi.sprite :as s]
             [infinitelives.pixi.tilemap :as tm]
+            [infinitelives.pixi.pixelfont :as pf]
 
             [infinitelives.utils.events :as e]
             [infinitelives.utils.spatial :as spatial]
             [infinitelives.utils.vec2 :as vec2]
             [infinitelives.utils.gamepad :as gp]
+            [infinitelives.utils.sound :as sound]
 
             [infinitelives.utils.boid :as b]
 
@@ -24,7 +26,8 @@
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [thekeep.async :refer [go-while]]
-                   [infinitelives.pixi.macros :as m] )
+                   [infinitelives.pixi.macros :as m]
+                   [infinitelives.pixi.pixelfont :as pf])
   )
 
 (def scale 2)
@@ -36,20 +39,27 @@
     :default 0))
 
 (defn hearts-updater []
-  (go
-    (m/with-sprite-set :hearts
-      [hearts (mapv #(s/make-sprite :heart :scale 2 :x (* 32 %)) (range 5))]
-      (loop []
-        (let [health (:health @state/state)
-              num (max 0 (Math/floor (/ health 20)))]
-          (js/console.log num)
-          (doseq [n (range num)]
-            (s/set-visible! (hearts n) true))
-          (doseq [n (range num 5)]
-            (s/set-visible! (hearts n) false))
-          (<! (timeout 300))
-          (recur)))
-      (<! (e/wait-frames 600)))))
+  (go-while (:running? @state/state)
+            (m/with-sprite :score
+              [score (pf/make-text :small "0" :x -100 :y -16 :scale 2 :xhandle 1.0 :yhandle 1.0)]
+              (m/with-sprite-set :hearts
+                [hearts (mapv #(s/make-sprite :heart :scale 2 :x (* 32 %)) (range 5))]
+                (let [health (:health @state/state)
+                      num (max 0 (Math/floor (/ health 20)))]
+                  (loop [num num]
+                    (doseq [n (range num)]
+                      (s/set-visible! (hearts n) true))
+                    (doseq [n (range num 5)]
+                      (s/set-visible! (hearts n) false))
+                    (<! (timeout 300))
+                    (pf/change-text! score :small (str (:score @state/state)))
+                    (let [new-health (:health @state/state)
+                          new-num (max 0 (Math/floor (/ new-health 20)))]
+                      (when (< new-num num)
+                        (sound/play-sound :die2 0.5 false))
+
+                      (recur new-num))))
+                (<! (e/wait-frames 600))))))
 
 (defn run []
   (go
@@ -57,6 +67,7 @@
            :running? true
            :health 100
            )
+    (sound/play-sound :startup 0.5 false)
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
           [floor-tile-map wall-tile-map] (themap/make-tile-map)
           floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
@@ -97,10 +108,10 @@
          ]
 
 
-        (spawner/spawn level floor-tile-locations [250 350] :lion 0   :enemy1 1.0)
-        (spawner/spawn level floor-tile-locations [700 150] :fire 700 :enemy2 2.0)
-        (spawner/spawn level floor-tile-locations [520 650] :fire 300 :enemy3 3.0)
-        (spawner/spawn level floor-tile-locations [920 350] :lion 300 :enemy4 4.0)
+        (spawner/spawn level floor-tile-locations [250 350] :lion 0   :enemy1 1.0 100)
+        (spawner/spawn level floor-tile-locations [700 150] :fire 700 :enemy2 2.0 250)
+        (spawner/spawn level floor-tile-locations [520 650] :fire 300 :enemy3 3.0 500)
+        (spawner/spawn level floor-tile-locations [920 350] :lion 300 :enemy4 4.0 750)
 
           ;; camera tracking
 
@@ -130,7 +141,8 @@
              (loop [pos (vec2/vec2 (* 5 16) (* 5 16))
                     bounce (vec2/zero)
                     vel (vec2/zero)
-                    sword-theta 0.0]
+                    sword-theta 0.0
+                    was-pressed? false]
                (let [
                      joy (vec2/vec2 (or (gp/axis 0)
                                         (cond (e/is-pressed? :left) -1
@@ -189,6 +201,7 @@
 
                  ;; handle hit
                  (when hit
+                   (sound/play-sound :hurt-low 0.5 false)
                    (swap! state/state update :health - 3))
 
                  (swap! state/state assoc :pos new-pos)
@@ -199,26 +212,37 @@
                  (if (e/is-pressed? :z)
                    (do
                      ;; spinning
+                     (js/console.log "!" was-pressed?)
+                     (when-not was-pressed?
+                       (sound/play-sound :swoosh 0.5 false))
                      (s/set-pos! sword pixel-pos)
                      (s/set-rotation! sword sword-theta)
                      (swap! state/state assoc :sword (vec2/add new-pos (-> (vec2/vec2 0 -20) (vec2/rotate sword-theta)))))
 
                    (do
                      ;; holding
+                     ;(js/console.log "-" was-pressed?)
                      (s/set-pos! sword (vec2/scale (vec2/add new-pos (vec2/vec2 5 13)) scale))
                      (s/set-rotation! sword 0)
                      (swap! state/state assoc :sword nil)))
 
                  (.sort (.-children level) depth-compare )
-
-                 (<! (e/next-frame))
-                 (when (pos? (:health @state/state))
-                   (recur new-pos
-                          (if hit
-                            hit
-                            (vec2/scale bounce 0.5))
-                          vel
-                          (+ sword-theta 0.2))))))))
+                 (let [this-press (e/is-pressed? :z)]
+                   (<! (e/next-frame))
+                   (when (pos? (:health @state/state))
+                     (recur new-pos
+                            (if hit
+                              hit
+                              (vec2/scale bounce 0.5))
+                            vel
+                            (+ sword-theta 0.2)
+                            this-press
+                            ))))))))
+        (sound/play-sound :lose2 0.5 false)
+        (<! (timeout 100))
+        (sound/play-sound :lose-low 0.5 false)
+        (<! (timeout 100))
+        (sound/play-sound :lose-high 0.5 false)
         (<! (timeout 5000))
 
 

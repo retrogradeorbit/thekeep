@@ -5,7 +5,10 @@
             [thekeep.line :as line]
             [thekeep.state :as state]
             [infinitelives.utils.vec2 :as vec2]
-            [infinitelives.utils.spatial :as spatial])
+            [infinitelives.utils.spatial :as spatial]
+            [infinitelives.utils.sound :as sound]
+            )
+
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [thekeep.async :refer [go-while]]
                    [infinitelives.pixi.macros :as m] )
@@ -25,7 +28,7 @@
 (defn count-enemies []
   (count @enemies))
 
-(defn spawn [level floor-tile-locations [x y] type speed]
+(defn spawn [level floor-tile-locations [x y] type speed score]
   (go-while (:running? @state/state)
     (let [initial-pos (vec2/vec2 x y)
           bkey [:enemy (keyword (gensym))]
@@ -83,21 +86,28 @@
                 (if (pos? hitcount)
                   ;; live
                   (if hit
-                    (recur (assoc next-boid
-                                  #_ :pos #_ (vec2/add new-pos
-                                                       (vec2/scale
-                                                        (vec2/sub new-pos (:pos @state/state))
-                                                        0.4))
-                                  :vel
-                                  (vec2/scale
-                                   (vec2/sub new-pos (:pos @state/state))
-                                   16))
-                           (dec hitcount))
+                    (do
+                      (sound/play-sound
+                       :blip1
+                       0.5 false)
+
+                      (recur (assoc next-boid
+                                    #_ :pos #_ (vec2/add new-pos
+                                                         (vec2/scale
+                                                          (vec2/sub new-pos (:pos @state/state))
+                                                          0.4))
+                                    :vel
+                                    (vec2/scale
+                                     (vec2/sub new-pos (:pos @state/state))
+                                     16))
+                             (dec hitcount)))
                     (recur next-boid
                            hitcount))
 
                   ;;die
                   (do
+                    (swap! state/state update :score + score)
+                    (sound/play-sound :lose2 0.75 false)
                     (spatial/remove-from-spatial :default bkey (vec2/as-vector new-pos))
                     (remove! bkey))
                   ))))

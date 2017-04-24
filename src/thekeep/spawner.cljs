@@ -28,7 +28,7 @@
 (defn count-enemies []
   (count @enemies))
 
-(defn spawn [level floor-tile-locations [x y] type delta enemy enemy-speed]
+(defn spawn [level floor-tile-locations [x y] type delta enemy enemy-speed enemy-score]
   (go
     (let [initial-pos (vec2/vec2 x y)
           bkey [:enemy (keyword (gensym))]
@@ -37,7 +37,7 @@
         [enemy1 (s/make-sprite type :scale scale :x (* scale x) :y (* scale y) :yhandle 0.85)]
         (<! (timeout delta))
         (while true
-          (enemy/spawn level floor-tile-locations [x y] enemy enemy-speed)
+          (enemy/spawn level floor-tile-locations [x y] enemy enemy-speed enemy-score)
           (<! (timeout 3000))
           (while (> (enemy/count-enemies) 10)
             (<! (timeout 100))))))

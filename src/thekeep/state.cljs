@@ -9,6 +9,7 @@
                  (vec2/vec2 (* 5 16) (* 5 16))
 
                  :health 100
+                 :score 0
 
                  :sword nil
 
