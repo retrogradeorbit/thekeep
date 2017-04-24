@@ -247,10 +247,10 @@
             (draw-floor-box2 [35 6] [7 3])
 
             ;; room 4
-            (draw-floor-box2 [50 15] [10 10])
+            (draw-floor-box2 [50 15] [10 12])
 
             ;; room 5
-            (draw-floor-box2 [30 30] [10 10])
+            (draw-floor-box2 [30 30] [10 12])
             )]
     (make-floor-walls floor-tile-map)
     )

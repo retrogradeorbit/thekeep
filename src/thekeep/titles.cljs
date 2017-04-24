@@ -5,6 +5,7 @@
             [infinitelives.utils.vec2 :as vec2]
             [thekeep.assets :as assets]
             [thekeep.map :as themap]
+            [thekeep.state :as state]
             [cljs.core.async :refer [timeout]])
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [infinitelives.pixi.macros :as m] )
@@ -14,6 +15,7 @@
 
 (defn run []
   (go
+    (swap! state/state assoc :running? false)
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
           [floor-tile-map wall-tile-map] (themap/make-title-screen-map)
 

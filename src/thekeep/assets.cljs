@@ -65,6 +65,7 @@
    :enemy1 {:pos [336 112] :size [16 16]}
    :enemy2 {:pos [352 112] :size [16 16]}
    :enemy3 {:pos [368 112] :size [16 16]}
+   :enemy4 {:pos [304 112] :size [16 16]}
 
    :chest {:pos [128 112] :size [16 16]}
 

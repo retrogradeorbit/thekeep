@@ -16,11 +16,14 @@
             [thekeep.line :as line]
             [thekeep.map :as themap]
             [thekeep.enemy :as enemy]
+            [thekeep.spawner :as spawner]
             [thekeep.titles :as titles]
+            [thekeep.state :as state]
 
             [cljs.core.async :refer [timeout]]
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
+                   [thekeep.async :refer [go-while]]
                    [infinitelives.pixi.macros :as m] )
   )
 
@@ -32,12 +35,12 @@
     (< (s/get-y b) (s/get-y a)) 1
     :default 0))
 
-(defn hearts-updater [state]
+(defn hearts-updater []
   (go
     (m/with-sprite-set :hearts
       [hearts (mapv #(s/make-sprite :heart :scale 2 :x (* 32 %)) (range 5))]
       (loop []
-        (let [health (:health @state)
+        (let [health (:health @state/state)
               num (max 0 (Math/floor (/ health 20)))]
           (js/console.log num)
           (doseq [n (range num)]
@@ -48,8 +51,12 @@
           (recur)))
       (<! (e/wait-frames 600)))))
 
-(defn run [state]
+(defn run []
   (go
+    (swap! state/state assoc
+           :running? true
+           :health 100
+           )
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
           [floor-tile-map wall-tile-map] (themap/make-tile-map)
           floor-tile-results (tm/make-tile-sprites tile-set floor-tile-map)
@@ -67,17 +74,18 @@
           playersprite (s/make-sprite :down :scale scale :x 0 :y 0)
           swordsprite (s/make-sprite :sword :scale scale :x 0 :y 0 :yhandle 1.3)
 
-          lion (s/make-sprite :lion :scale scale :yhandle 0.8 :x (* scale 250) :y (* scale 300))
-          fire (s/make-sprite :fire :scale scale :yhandle 0.8 :x (* scale 175) :y (* scale 150))
+          ;lion (s/make-sprite :lion :scale scale :yhandle 0.8 :x (* scale 250) :y (* scale 300))
+          ;fire (s/make-sprite :fire :scale scale :yhandle 0.8 :x (* scale 175) :y (* scale 150))
           chest (s/make-sprite :chest :scale scale :x (* scale 240) :y (* scale 100))
           switch (s/make-sprite :switch1 :scale scale :x (* scale 80) :y (* scale 120))
 
                                         ;enemy1 (s/make-sprite :enemy1 :scale scale :x (* scale 215) :y (* scale 270))
 
-          level (s/make-container :children [chest switch lion fire])
+          level (s/make-container :children [chest switch ; lion fire
+                                             ])
           ]
 
-      (hearts-updater state)
+      (hearts-updater)
 
       (spatial/new-spatial! :default 8)
 
@@ -88,25 +96,23 @@
 
          ]
 
-        ;; enemys
-        (go (while true
-              (enemy/spawn level state floor-tile-locations [250 285])
-              (<! (timeout 300))
-              (while (> (enemy/count-enemies) 5)
-                (<! (timeout 100)))))
 
+        (spawner/spawn level floor-tile-locations [250 350] :lion 0   :enemy1 1.0)
+        (spawner/spawn level floor-tile-locations [700 150] :fire 700 :enemy2 2.0)
+        (spawner/spawn level floor-tile-locations [520 650] :fire 300 :enemy3 3.0)
+        (spawner/spawn level floor-tile-locations [920 350] :lion 300 :enemy4 4.0)
 
-        ;; camera tracking
-        (go
+          ;; camera tracking
 
-          (loop [cam (:pos @state)]
+        (go-while (:running? @state/state)
+          (loop [cam (:pos @state/state)]
             (let [[cx cy] (vec2/get-xy cam)]
 
               (s/set-pivot! container (int cx) (int cy))
                                         ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
 
               (<! (e/next-frame))
-              (let [next-pos (vec2/scale (:pos @state) 0.5)
+              (let [next-pos (vec2/scale (:pos @state/state) 1)
                     v (vec2/sub next-pos cam)
                     mag (vec2/magnitude-squared v)]
                 (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
@@ -183,9 +189,9 @@
 
                  ;; handle hit
                  (when hit
-                   (swap! state update :health - 3))
+                   (swap! state/state update :health - 3))
 
-                 (swap! state assoc :pos new-pos)
+                 (swap! state/state assoc :pos new-pos)
                  (s/set-pos! player pixel-pos)
                  (spatial/move-in-spatial :default [:sword] (vec2/as-vector pos) (vec2/as-vector new-pos))
                  (spatial/move-in-spatial :default [:player] (vec2/as-vector pos) (vec2/as-vector new-pos))
@@ -195,18 +201,18 @@
                      ;; spinning
                      (s/set-pos! sword pixel-pos)
                      (s/set-rotation! sword sword-theta)
-                     (swap! state assoc :sword (vec2/add new-pos (-> (vec2/vec2 0 -20) (vec2/rotate sword-theta)))))
+                     (swap! state/state assoc :sword (vec2/add new-pos (-> (vec2/vec2 0 -20) (vec2/rotate sword-theta)))))
 
                    (do
                      ;; holding
                      (s/set-pos! sword (vec2/scale (vec2/add new-pos (vec2/vec2 5 13)) scale))
                      (s/set-rotation! sword 0)
-                     (swap! state assoc :sword nil)))
+                     (swap! state/state assoc :sword nil)))
 
                  (.sort (.-children level) depth-compare )
 
                  (<! (e/next-frame))
-                 (when (pos? (:health @state))
+                 (when (pos? (:health @state/state))
                    (recur new-pos
                           (if hit
                             hit

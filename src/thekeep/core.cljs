@@ -52,26 +52,6 @@
                      :tilemap :top-left
                      :title :center}}))
 
-(def scale 2)
-
-(defonce state (atom
-                {:pos
-                 (vec2/vec2 (* 5 16) (* 5 16))
-
-                 :health 100
-
-                 :sword nil
-
-                 :enemy (vec2/zero)
-
-                 :enemies []
-
-                 }))
-
-
-
-
-
 (defonce main
   (go
     (<! (r/load-resources canvas :ui
@@ -83,4 +63,4 @@
 
     (while true
       (<! (titles/run))
-      (<! (game/run state)))))
+      (<! (game/run)))))
