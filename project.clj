@@ -57,7 +57,7 @@
                                "checkouts/infinitelives.utils/src"
                                "checkouts/infinitelives.pixi/src"
                                ]
-                :compiler {:output-to "resources/public/js/compiled/thekeep.js"
+                :compiler {:output-to "build/js/compiled/thekeep.js"
                            :main thekeep.core
                            :optimizations :advanced
                            :pretty-print false
