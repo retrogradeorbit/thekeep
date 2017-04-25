@@ -6,8 +6,6 @@ A game done for the April 2017 Lisp Gamejam
 
 ![Title screen](./screenshot-04.png)
 
-FIXME: Write a one-line description of your library/project.
-
 ## Overview
 
 Plug in your
