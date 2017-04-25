@@ -14,6 +14,8 @@ Plug in your
 game controller and use the analog stick to control your character.
 Press a button to swing your sword. Hold down a button to keep swinging your sword in circles.
 
+Keyboard controls (arrow keys, space, 'z') or gamepad.
+
 Get the highest score you can without being killed!
 
 <img src="screenshot-01.png" width="20%"> <img src="screenshot-03.png" width="20%"> <img src="screenshot-04.png" width="20%">
