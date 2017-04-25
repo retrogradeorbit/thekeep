@@ -239,15 +239,4 @@
         (sound/play-sound :lose-low 0.5 false)
         (<! (timeout 100))
         (sound/play-sound :lose-high 0.5 false)
-        (<! (timeout 5000))
-
-
-
-        #_ (while true
-             (<! (e/next-frame)))
-
-        )
-
-
-
-      )))
+        (<! (timeout 5000))))))

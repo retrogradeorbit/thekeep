@@ -5,6 +5,7 @@
 
             [infinitelives.utils.events :as e]
             [infinitelives.utils.vec2 :as vec2]
+            [infinitelives.utils.spatial :as spatial]
 
             [thekeep.assets :as assets]
             [thekeep.map :as themap]

@@ -10,6 +10,7 @@
             [cljs.core.async :refer [timeout]]
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
+                   [thekeep.async :refer [go-while]]
                    [infinitelives.pixi.macros :as m] )
 
   )
@@ -29,7 +30,7 @@
   (count @enemies))
 
 (defn spawn [level floor-tile-locations [x y] type delta enemy enemy-speed enemy-score]
-  (go
+  (go-while (:running? @state/state)
     (let [initial-pos (vec2/vec2 x y)
           bkey [:enemy (keyword (gensym))]
           ]
@@ -40,6 +41,4 @@
           (enemy/spawn level floor-tile-locations [x y] enemy enemy-speed enemy-score)
           (<! (timeout 3000))
           (while (> (enemy/count-enemies) 10)
-            (<! (timeout 100))))))
-    )
-  )
+            (<! (timeout 100))))))))
