@@ -14,8 +14,7 @@
             [cljs.core.async :refer [timeout]])
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [infinitelives.pixi.macros :as m]
-                   [infinitelives.pixi.pixelfont :as pf] )
-  )
+                   [infinitelives.pixi.pixelfont :as pf]))
 
 (def scale 2)
 
@@ -31,28 +30,23 @@
           wall-tile-sprites (mapv second (tm/make-tile-sprites tile-set wall-tile-map))
 
           floor (s/make-container :children floor-tile-sprites
-                                  :scale scale
-                                  )
+                                  :scale scale)
 
           walls (s/make-container :children wall-tile-sprites
-                                  :scale scale
-                                  )]
-
+                                  :scale scale)]
       (m/with-sprite :title
-        [container (s/make-container :children [floor walls] :scale 1)
-
-         ]
+        [container (s/make-container :children [floor walls] :scale 1)]
         (m/with-sprite :ui
           [text (pf/make-text :small "Press Space Or Button To Start"
                               :scale scale :x 0 :y 0
                               :visible true)]
 
           (loop [theta 0]
-            (let [[x y] (vec2/get-xy (vec2/add (vec2/vec2 -750 -500) (vec2/rotate (vec2/vec2 300 0) theta )))]
-              (s/set-pos! container (vec2/vec2
-                                        ;x y
-                                     (int x) (int y)
-                                     ))
+            (let [[x y] (vec2/get-xy
+                         (vec2/add
+                          (vec2/vec2 -750 -500)
+                          (vec2/rotate (vec2/vec2 300 0) theta )))]
+              (s/set-pos! container (vec2/vec2 (int x) (int y)))
               (<! (e/next-frame))
               (when-not (controls/fire?)
                 (recur (+ theta 0.01))))))))))
