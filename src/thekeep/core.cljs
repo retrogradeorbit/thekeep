@@ -53,7 +53,7 @@
                      :damage :bottom-right
                      :hearts :bottom-left
                      :score :bottom-right
-                     :tilemap :top-left
+                     :tilemap :center
                      :title :center
                      :ui :center}}))
 

@@ -127,10 +127,10 @@
                                         ;(s/set-pivot! player (/ (int (* scale cx)) scale) (/ (int (* scale cy)) scale))
 
               (<! (e/next-frame))
-              (let [next-pos (vec2/scale (:pos @state/state) 1)
+              (let [next-pos (vec2/scale (:pos @state/state) 2)
                     v (vec2/sub next-pos cam)
                     mag (vec2/magnitude-squared v)]
-                (recur (vec2/add cam (vec2/scale v (* 0.00001 mag))))))))
+                (recur (vec2/add cam (vec2/scale v (* 0.0000002 mag))))))))
 
 
         (<!
