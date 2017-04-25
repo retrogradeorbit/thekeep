@@ -20,7 +20,7 @@ Get the highest score you can without being killed!
 
 As always I ran out of time to do the things I wanted. There's no loot. It sucks.
 
-<img src="screenshot-01.png" width="20%"> <img src="screenshot-03.png" width="20%"> <img src="screenshot-04.png" width="20%">
+<img src="screenshot-02.png" width="20%"> <img src="screenshot-03.png" width="20%"> <img src="screenshot-04.png" width="20%">
 
 Written in ClojureScript in 10 days for April Lisp 2017 Gamejam By Crispin Wellington
 
