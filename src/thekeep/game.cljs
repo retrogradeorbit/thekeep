@@ -21,6 +21,7 @@
             [thekeep.spawner :as spawner]
             [thekeep.titles :as titles]
             [thekeep.state :as state]
+            [thekeep.controls :as controls]
 
             [cljs.core.async :refer [timeout]]
             )
@@ -63,9 +64,12 @@
 
 (defn run []
   (go
+    (enemy/empty!)
     (swap! state/state assoc
            :running? true
            :health 100
+           :score 0
+           :pos (vec2/vec2 (* 5 16) (* 5 16))
            )
     (sound/play-sound :startup 0.5 false)
     (let [tile-set (tm/make-tile-set :tiles2 assets/tile-mapping [16 16])
@@ -144,15 +148,7 @@
                     sword-theta 0.0
                     was-pressed? false]
                (let [
-                     joy (vec2/vec2 (or (gp/axis 0)
-                                        (cond (e/is-pressed? :left) -1
-                                              (e/is-pressed? :right) 1
-                                              :default 0) )
-                                    (or (gp/axis 1)
-                                        (cond (e/is-pressed? :up) -1
-                                              (e/is-pressed? :down) 1
-                                              :default 0)
-                                        ))
+                     joy (controls/direction)
 
                      new-pos (vec2/add pos (vec2/scale joy 2))
 
@@ -209,7 +205,7 @@
                  (spatial/move-in-spatial :default [:sword] (vec2/as-vector pos) (vec2/as-vector new-pos))
                  (spatial/move-in-spatial :default [:player] (vec2/as-vector pos) (vec2/as-vector new-pos))
 
-                 (if (e/is-pressed? :z)
+                 (if (controls/fire?)
                    (do
                      ;; spinning
                      (js/console.log "!" was-pressed?)
@@ -227,7 +223,7 @@
                      (swap! state/state assoc :sword nil)))
 
                  (.sort (.-children level) depth-compare )
-                 (let [this-press (e/is-pressed? :z)]
+                 (let [this-press (controls/fire?)]
                    (<! (e/next-frame))
                    (when (pos? (:health @state/state))
                      (recur new-pos

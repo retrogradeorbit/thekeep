@@ -9,6 +9,7 @@
             [thekeep.assets :as assets]
             [thekeep.map :as themap]
             [thekeep.state :as state]
+            [thekeep.controls :as controls]
             [cljs.core.async :refer [timeout]])
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [infinitelives.pixi.macros :as m]
@@ -52,5 +53,5 @@
                                      (int x) (int y)
                                      ))
               (<! (e/next-frame))
-              (when-not (e/is-pressed? :space)
+              (when-not (controls/fire?)
                 (recur (+ theta 0.01))))))))))

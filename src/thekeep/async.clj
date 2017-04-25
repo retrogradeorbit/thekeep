@@ -75,6 +75,9 @@
 (defmacro go-while [test & body]
   `(m/go ~@(process-body test body)))
 
+(defmacro continue-while [test & body]
+  `(do m/go ~@(process-body test body)))
+
 (defmacro go-until-reload [state & body]
   `(let [counter# (:__figwheel_counter @~state)]
      (go-while (= counter# (:__figwheel_counter @~state))
