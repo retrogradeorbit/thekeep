@@ -43,7 +43,7 @@
 
          ]
         (m/with-sprite :ui
-          [text (pf/make-text :small "Press Space To Start"
+          [text (pf/make-text :small "Press Space Or Button To Start"
                               :scale scale :x 0 :y 0
                               :visible true)]
 

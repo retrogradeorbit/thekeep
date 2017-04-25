@@ -208,7 +208,6 @@
                  (if (controls/fire?)
                    (do
                      ;; spinning
-                     (js/console.log "!" was-pressed?)
                      (when-not was-pressed?
                        (sound/play-sound :swoosh 0.5 false))
                      (s/set-pos! sword pixel-pos)
