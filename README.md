@@ -20,7 +20,9 @@ Get the highest score you can without being killed!
 
 <img src="screenshot-01.png" width="20%"> <img src="screenshot-03.png" width="20%"> <img src="screenshot-04.png" width="20%">
 
-Written in ClojureScript in 10 days for April Lisp 2017 Gamejam
+Written in ClojureScript in 10 days for April Lisp 2017 Gamejam By Crispin Wellington
+
+graphics by Buch: https://opengameart.org/content/a-blocky-dungeon
 
 Source code: https://github.com/retrogradeorbit/thekeep
 
