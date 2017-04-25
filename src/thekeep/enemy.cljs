@@ -36,8 +36,7 @@
     (let [[np bkey]
           (continue-while (:running? @state/state)
                           (let [initial-pos (vec2/vec2 x y)
-                                bkey [:enemy (keyword (gensym))]
-                                ]
+                                bkey [:enemy (keyword (gensym))]]
                             (m/with-sprite level
                               [enemy1 (s/make-sprite type :scale scale :x x :y y)]
                               (add! bkey enemy1)
@@ -67,15 +66,13 @@
                                                            (vec2/as-vector (vec2/add pos (vec2/vec2 32 32))))
                                         matched (->> res
                                                      keys
-                                                     (filter #(= :sword (first %)))
-                                                     )
+                                                     (filter #(= :sword (first %))))
                                         hit (when (pos? (count matched))
                                               (let [{:keys [sword]} @state/state]
                                                 (when sword
                                                   (let [enemy-sword (-> pos (vec2/sub sword) vec2/magnitude)]
                                                     (when (< enemy-sword 10)
-                                                      :hit
-                                                      )))))]
+                                                      :hit)))))]
 
 
                                     (swap! state/state assoc :enemy new-pos)
@@ -97,10 +94,6 @@
                                              0.5 false)
 
                                             (recur (assoc next-boid
-                                                          #_ :pos #_ (vec2/add new-pos
-                                                                               (vec2/scale
-                                                                                (vec2/sub new-pos (:pos @state/state))
-                                                                                0.4))
                                                           :vel
                                                           (vec2/scale
                                                            (vec2/sub new-pos (:pos @state/state))
