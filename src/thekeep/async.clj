@@ -30,8 +30,6 @@
       :default
       (for [a body]
         (cond
-          (symbol? a) a
-
           ;; recurse through subforms of a vector
           (vector? a) (into [] (thread-test-around-sync-points test a))
 
