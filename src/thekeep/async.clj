@@ -25,7 +25,7 @@
          test
          (conj tail test 'thekeep.async/<!*))
 
-        ;; thread test condition around <!
+        ;; thread test condition around >!
         '>!
         (thread-test-around-sync-points
          test
