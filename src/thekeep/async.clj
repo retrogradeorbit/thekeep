@@ -35,7 +35,8 @@
           (cond
             ;; recurse through subforms of a vector
             (vector? form)
-            (into [] (thread-test-around-sync-points test form))
+            (into []
+                  (thread-test-around-sync-points test form))
 
             ;; recurse through this full s-exp form
             (sequential? form)
