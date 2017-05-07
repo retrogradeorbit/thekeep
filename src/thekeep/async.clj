@@ -39,9 +39,6 @@
           ;; default is leave code unchanged
           :default form)))))
 
-(defmacro foo-while [test & body]
-  (thread-test-around-sync-points test (cons 'do body)))
-
 (defmacro go-while [test & body]
   `(go
      ~(thread-test-around-sync-points test (cons 'do body))))
