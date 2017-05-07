@@ -20,11 +20,13 @@
             [thekeep.enemy :as enemy]
             [thekeep.game :as game]
             [thekeep.titles :as titles]
+            [thekeep.state :as state]
 
             [cljs.core.async :refer [timeout]]
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [infinitelives.pixi.macros :as m]
+                   [thekeep.async :refer [go-while foo-while continue-while <!*]]
                    [infinitelives.pixi.pixelfont :as pf]))
 
 (enable-console-print!)
@@ -94,3 +96,29 @@
     (while true
       (<! (titles/run))
       (<! (game/run)))))
+
+
+#_ (go-while true
+          (loop [a 1]
+            (<! (e/next-frame))
+            (recur a)))
+
+
+(foo-while
+ (not (:running? @state/state))
+ (js/console.log true))
+
+(go
+  (continue-while
+   (not (:running? @state/state))
+   (loop []
+     (js/console.log "!")
+     (<! (e/next-frame))
+     (recur)))
+  (continue-while
+   (:running? @state/state)
+   (loop []
+     (js/console.log "?")
+     (<! (e/next-frame))
+     (recur)))
+  )

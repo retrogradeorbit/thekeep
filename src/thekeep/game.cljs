@@ -23,10 +23,10 @@
             [thekeep.state :as state]
             [thekeep.controls :as controls]
 
-            [cljs.core.async :refer [timeout]]
+            [cljs.core.async :refer [timeout <! >!]]
             )
   (:require-macros [cljs.core.async.macros :refer [go]]
-                   [thekeep.async :refer [go-while]]
+                   [thekeep.async :refer [go-while foo-while]]
                    [infinitelives.pixi.macros :as m]
                    [infinitelives.pixi.pixelfont :as pf])
   )
