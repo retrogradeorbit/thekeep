@@ -23,6 +23,10 @@
       (thread-test-around-sync-points test
                (cons 'thekeep.async/<!* (cons test tail)))
 
+      (= head '>!)
+      (thread-test-around-sync-points test
+               (cons 'thekeep.async/>!* (cons test tail)))
+
       :default
       (for [a body]
         (cond
