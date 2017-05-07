@@ -28,16 +28,16 @@
                (cons 'thekeep.async/>!* (cons test tail)))
 
       :default
-      (for [a body]
+      (for [form body]
         (cond
           ;; recurse through subforms of a vector
-          (vector? a) (into [] (thread-test-around-sync-points test a))
+          (vector? form) (into [] (thread-test-around-sync-points test form))
 
           ;; recurse through this full s-exp form
-          (sequential? a) (thread-test-around-sync-points test a)
+          (sequential? form) (thread-test-around-sync-points test form)
 
           ;; default is leave code unchanged
-          :default a)))))
+          :default form)))))
 
 (defmacro foo-while [test & body]
   (thread-test-around-sync-points test (cons 'do body)))
