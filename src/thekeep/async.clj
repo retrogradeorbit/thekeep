@@ -33,7 +33,6 @@
         head
         (for [form body]
           (cond
-
             ;; recurse through subforms of a vector
             (vector? form)
             (into [] (thread-test-around-sync-points test form))
