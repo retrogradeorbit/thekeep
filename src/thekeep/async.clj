@@ -18,19 +18,20 @@
 (defn thread-test-around-sync-points [test body]
   (if (sequential? body)
     (let [[head & tail] body]
-      (cond
+      (condp = head
         ;; thread test condition around <!
-        (= head '<!)
+        '<!
         (thread-test-around-sync-points
          test
          (conj tail test 'thekeep.async/<!*))
 
-        (= head '>!)
+        ;; thread test condition around <!
+        '>!
         (thread-test-around-sync-points
          test
          (conj tail test 'thekeep.async/>!*))
 
-        head
+        ;; other head
         (for [form body]
           (cond
             ;; recurse through subforms of a vector
