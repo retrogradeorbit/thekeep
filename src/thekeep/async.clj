@@ -21,11 +21,11 @@
       ;; thread test condition around <!
       (= head '<!)
       (thread-test-around-sync-points test
-               (cons 'thekeep.async/<!* (cons test tail)))
+       (conj tail test 'thekeep.async/<!*))
 
       (= head '>!)
       (thread-test-around-sync-points test
-               (cons 'thekeep.async/>!* (cons test tail)))
+       (conj tail test 'thekeep.async/>!*))
 
       :default
       (for [form body]
