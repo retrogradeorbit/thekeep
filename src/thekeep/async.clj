@@ -36,6 +36,8 @@
           ;; recurse through this full s-exp form
           (sequential? form) (thread-test-around-sync-points test form)
 
+          ;; todo: handle hashmap literals
+
           ;; default is leave code unchanged
           :default form)))))
 
