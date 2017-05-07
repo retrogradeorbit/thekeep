@@ -35,19 +35,19 @@
           (cond
 
             ;; recurse through subforms of a vector
-            (vector? form) (into [] (thread-test-around-sync-points test form))
+            (vector? form)
+            (into [] (thread-test-around-sync-points test form))
 
             ;; recurse through this full s-exp form
-            (sequential? form) (thread-test-around-sync-points test form)
+            (sequential? form)
+            (thread-test-around-sync-points test form)
 
             ;; handle hashmap literals
             (map? form)
             (into {}
-                  (map
-                   (fn [[k v]]
-                     [(thread-test-around-sync-points test k)
-                      (thread-test-around-sync-points test v)])
-                   form))
+                  (for [[k v] form]
+                   [(thread-test-around-sync-points test k)
+                    (thread-test-around-sync-points test v)]))
 
             ;; default is leave code unchanged
             :default form))))
